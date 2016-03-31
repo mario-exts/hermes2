@@ -1,0 +1,70 @@
+<project name="Hermes2" basedir="." default="pack" xmlns:ivy="antlib:org.apache.ivy.ant">
+
+	<property file="build.properties" />
+
+	<property name="lib" value="lib" />
+	<property name="lib-local" value="lib-local" />
+	<property name="conf" value="conf" />
+	<property name="classes" value="bin" />
+
+	<property name="dist" value="dist" />
+	<property name="dist.jar" value="${dist}/jar" />
+	<property name="dist.ext" value="${dist}/ext" />
+
+	<target name="resolve" description="retreive dependencies with ivy">
+		<delete dir="${lib.dir}">
+			<include name="*.jar" />
+			<exclude name="sqljdbc4*.jar" />
+		</delete>
+		<ivy:settings file="ivysettings.xml" />
+		<ivy:retrieve />
+	</target>
+
+	<target name="clean">
+		<delete dir="${dist}" />
+	</target>
+
+	<target name="jar" depends="clean">
+		<jar jarfile="${dist.jar}/${ant.project.name}.jar">
+			<fileset dir="${classes}" />
+		</jar>
+	</target>
+
+	<target name="pack" depends="jar">
+		<copy todir="${dist.ext}/${ant.project.name}/lib" failonerror="false">
+			<fileset dir="${dist.jar}" />
+			<fileset dir="${lib-local}" />
+			<fileset dir="${lib}">
+				<exclude name="alpn*.jar" />
+				<exclude name="slf4j*" />
+				<exclude name="log4j*" />
+				<exclude name="gson*" />
+				<exclude name="netty*" />
+			</fileset>
+		</copy>
+
+		<copy todir="${dist.ext}/${ant.project.name}" failonerror="false">
+			<fileset dir=".">
+				<filename name="extension.xml" />
+			</fileset>
+		</copy>
+
+		<copy todir="${dist.ext}/${ant.project.name}/conf" failonerror="false">
+			<fileset dir="${conf}">
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="deploy" depends="pack">
+		<delete dir="${deploy.path}/${ant.project.name}" />
+		<copy todir="${deploy.path}">
+			<fileset dir="${dist.ext}" />
+		</copy>
+		<copy todir="${deploy.path}/__lib__">
+			<fileset dir="lib">
+				<include name="alpn*.jar" />
+			</fileset>
+		</copy>
+	</target>
+
+</project>

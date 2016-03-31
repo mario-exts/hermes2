@@ -1,0 +1,78 @@
+package com.gaia.hermes2.processor.push;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import org.bson.Document;
+
+import com.gaia.hermes2.Hermes2PushHandler;
+import com.gaia.hermes2.processor.Hermes2BaseProcessor;
+import com.gaia.hermes2.service.BaseHermes2Notification;
+import com.gaia.hermes2.service.Hermes2PushNotificationService;
+import com.gaia.hermes2.statics.F;
+import com.mario.entity.MessageHandler;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoDatabase;
+import com.nhb.common.data.MapTuple;
+import com.nhb.common.data.PuElement;
+import com.nhb.common.data.PuObject;
+import com.nhb.common.data.PuObjectRO;
+
+public class PushNotificationProcessor extends Hermes2BaseProcessor {
+
+	@Override
+	protected PuElement process(MessageHandler handler, PuObjectRO data) {
+		if (handler instanceof Hermes2PushHandler) {
+			Hermes2PushHandler pushHandler = (Hermes2PushHandler) handler;
+			MongoDatabase database = pushHandler.getDatabase();
+			MongoCollection<Document> collection = data.getBoolean(F.SANDBOX, false)
+					? database.getCollection(F.DATABASE_DEVICE_TOKEN_SANDBOX)
+					: database.getCollection(F.DATABASE_DEVICE_TOKEN);
+
+			String applicationId = data.getString(F.APPLICATION_ID);
+
+			Document criteria = new Document();
+			criteria.append(F.APPLICATION_ID, applicationId);
+			if (data.variableExists(F.SERVICE_TYPE)) {
+				criteria.append(F.SERVICE_TYPE, data.getString(F.SERVICE_TYPE));
+			}
+			if (data.variableExists(F.TOKEN)) {
+				criteria.append(F.TOKEN, data.getString(F.TOKEN));
+			}
+
+			FindIterable<Document> cursor = collection.find(criteria);
+			MongoCursor<Document> it = cursor.iterator();
+
+			Map<String, Collection<String>> targetDevicesByService = new HashMap<>();
+
+			int count = 0;
+			while (it.hasNext()) {
+				Document row = it.next();
+				String authenticatorId = row.getString(F.AUTHENTICATOR_ID);
+				if (!targetDevicesByService.containsKey(authenticatorId)) {
+					targetDevicesByService.put(authenticatorId, new HashSet<>());
+				}
+				targetDevicesByService.get(authenticatorId).add(row.getString(F.TOKEN));
+				count++;
+			}
+
+			String message = data.getString(F.MESSAGE);
+			for (Entry<String, Collection<String>> entry : targetDevicesByService.entrySet()) {
+				Hermes2PushNotificationService service = pushHandler.getPushService(entry.getKey());
+				if (service != null) {
+					service.push(new BaseHermes2Notification(entry.getValue(), message, data.getString(F.TITLE, null)));
+				} else {
+					getLogger().warn("Unable to get notification service for authenticator id " + entry.getKey());
+				}
+			}
+
+			return PuObject.fromObject(new MapTuple<>(F.STATUS, 0, F.TARGETS, count));
+		}
+		return null;
+	}
+}

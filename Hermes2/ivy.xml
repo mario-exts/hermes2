@@ -1,0 +1,16 @@
+<ivy-module version="2.0">
+	<info organisation="com.puppet.gaia" module="hermes2" />
+	<configurations defaultconfmapping="default">
+		<conf name="default" />
+		<conf name="java7" extends="default" description="Java 7 dependencies" />
+		<conf name="eclipse" description="Special dependencies in Eclipse" />
+		<conf name="utest" extends="eclipse" description="Unit testing dependencies" />
+	</configurations>
+
+	<dependencies>
+		<dependency org="com.relayrides" name="pushy" rev="0.5.2" />
+		<dependency org="org.mortbay.jetty.alpn" name="alpn-boot" rev="8.1.5.v20150921" />
+		<dependency org="io.netty" name="netty-tcnative" rev="1.1.30.Fork1"/>
+		<!-- <dependency org="org.mortbay.jetty.alpn" name="alpn-boot" rev="8.1.7.v20160121" /> -->
+	</dependencies>
+</ivy-module>
