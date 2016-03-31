@@ -33,13 +33,17 @@
 	<target name="pack" depends="jar">
 		<copy todir="${dist.ext}/${ant.project.name}/lib" failonerror="false">
 			<fileset dir="${dist.jar}" />
-			<fileset dir="${lib-local}" />
+			<fileset dir="${lib-local}">
+				<exclude name="netty-tcnative*" />
+			</fileset>
 			<fileset dir="${lib}">
 				<exclude name="alpn*.jar" />
 				<exclude name="slf4j*" />
 				<exclude name="log4j*" />
 				<exclude name="gson*" />
 				<exclude name="netty*" />
+				<!-- <include name="netty-tcnative*" />
+				<include name="pushy*" /> -->
 			</fileset>
 		</copy>
 

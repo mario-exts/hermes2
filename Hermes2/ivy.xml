@@ -10,7 +10,7 @@
 	<dependencies>
 		<dependency org="com.relayrides" name="pushy" rev="0.5.2" />
 		<dependency org="org.mortbay.jetty.alpn" name="alpn-boot" rev="8.1.5.v20150921" />
-		<dependency org="io.netty" name="netty-tcnative" rev="1.1.30.Fork1"/>
+		<!-- <dependency org="io.netty" name="netty-tcnative" rev="1.1.30.Fork1"/> -->
 		<!-- <dependency org="org.mortbay.jetty.alpn" name="alpn-boot" rev="8.1.7.v20160121" /> -->
 	</dependencies>
 </ivy-module>
