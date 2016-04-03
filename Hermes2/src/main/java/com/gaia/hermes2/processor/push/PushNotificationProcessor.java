@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.bson.Document;
 
@@ -50,7 +49,7 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 
 			Map<String, Collection<String>> targetDevicesByService = new HashMap<>();
 
-			int count = 0;
+			Map<String, Integer> countByService = new HashMap<>();
 			while (it.hasNext()) {
 				Document row = it.next();
 				String authenticatorId = row.getString(F.AUTHENTICATOR_ID);
@@ -58,20 +57,25 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 					targetDevicesByService.put(authenticatorId, new HashSet<>());
 				}
 				targetDevicesByService.get(authenticatorId).add(row.getString(F.TOKEN));
-				count++;
+				if (!countByService.containsKey(row.getString(F.SERVICE_TYPE))) {
+					countByService.put(row.getString(F.SERVICE_TYPE), 1);
+				} else {
+					countByService.put(row.getString(F.SERVICE_TYPE),
+							countByService.get(row.getString(F.SERVICE_TYPE)) + 1);
+				}
 			}
 
 			String message = data.getString(F.MESSAGE);
-			for (Entry<String, Collection<String>> entry : targetDevicesByService.entrySet()) {
+			targetDevicesByService.entrySet().parallelStream().forEach(entry -> {
 				Hermes2PushNotificationService service = pushHandler.getPushService(entry.getKey());
 				if (service != null) {
 					service.push(new BaseHermes2Notification(entry.getValue(), message, data.getString(F.TITLE, null)));
 				} else {
 					getLogger().warn("Unable to get notification service for authenticator id " + entry.getKey());
 				}
-			}
+			});
 
-			return PuObject.fromObject(new MapTuple<>(F.STATUS, 0, F.TARGETS, count));
+			return PuObject.fromObject(new MapTuple<>(F.STATUS, 0, F.TARGETS, countByService));
 		}
 		return null;
 	}
