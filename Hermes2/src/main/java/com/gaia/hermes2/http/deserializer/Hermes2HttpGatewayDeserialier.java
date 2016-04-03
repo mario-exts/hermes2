@@ -16,9 +16,9 @@ import com.mario.entity.message.MessageRW;
 import com.mario.entity.message.transcoder.http.HttpMessageDeserializer;
 import com.nhb.common.data.PuObject;
 
-public class Hermes2RegisterHttpGatewayDeserialier extends HttpMessageDeserializer {
+public class Hermes2HttpGatewayDeserialier extends HttpMessageDeserializer {
 
-	public Hermes2RegisterHttpGatewayDeserialier() {
+	public Hermes2HttpGatewayDeserialier() {
 		super();
 		getLogger().debug("init deserializer");
 	}
