@@ -76,11 +76,19 @@ public class Hermes2RegisterHandler extends BaseMessageHandler {
 
 		createDatabaseIndexes(this.database.getCollection(F.DATABASE_DEVICE_TOKEN),
 				new ArrayList<>(Arrays.asList(new Document().append(F.ID, 1), new Document().append(F.CHECKSUM, 1),
-						new Document().append(F.APPLICATION_ID, 1), new Document().append(F.SERVICE_TYPE, 1))));
+						new Document().append(F.TOKEN, 1), new Document().append(F.APPLICATION_ID, 1),
+						new Document().append(F.APPLICATION_ID, 1).append(F.SERVICE_TYPE, 1),
+						new Document().append(F.APPLICATION_ID, 1).append(F.SERVICE_TYPE, 1).append(F.TOKEN, 1),
+						new Document().append(F.APPLICATION_ID, 1).append(F.TOKEN, 1),
+						new Document().append(F.SERVICE_TYPE, 1))));
 
 		createDatabaseIndexes(this.database.getCollection(F.DATABASE_DEVICE_TOKEN_SANDBOX),
 				new ArrayList<>(Arrays.asList(new Document().append(F.ID, 1), new Document().append(F.CHECKSUM, 1),
-						new Document().append(F.APPLICATION_ID, 1), new Document().append(F.SERVICE_TYPE, 1))));
+						new Document().append(F.TOKEN, 1), new Document().append(F.APPLICATION_ID, 1),
+						new Document().append(F.APPLICATION_ID, 1).append(F.SERVICE_TYPE, 1),
+						new Document().append(F.APPLICATION_ID, 1).append(F.SERVICE_TYPE, 1).append(F.TOKEN, 1),
+						new Document().append(F.APPLICATION_ID, 1).append(F.TOKEN, 1),
+						new Document().append(F.SERVICE_TYPE, 1))));
 	}
 
 	private void initController(PuObject commands) {
