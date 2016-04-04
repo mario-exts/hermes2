@@ -115,21 +115,24 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 	@Override
 	public PuElement handle(Message message) {
 		getLogger().debug("Handling message: " + message.getData());
-		PuObject request = (PuObject) message.getData();
-		String command = request.getString(F.COMMAND, null);
-		if (command != null) {
-			try {
-				Hermes2ProcessorResponseData result = (Hermes2ProcessorResponseData) this.controller
-						.processCommand(command, message);
-				if (result != null) {
-					return result.getResult();
+		if (message.getData() != null) {
+			PuObject request = (PuObject) message.getData();
+			String command = request.getString(F.COMMAND, null);
+			if (command != null) {
+				try {
+					Hermes2ProcessorResponseData result = (Hermes2ProcessorResponseData) this.controller
+							.processCommand(command, message);
+					if (result != null) {
+						return result.getResult();
+					}
+				} catch (InstantiationException | IllegalAccessException | NoProcessorRegisteredException
+						| InvalidProcessorType e) {
+					throw new RuntimeException("Error while handling message", e);
 				}
-			} catch (InstantiationException | IllegalAccessException | NoProcessorRegisteredException
-					| InvalidProcessorType e) {
-				throw new RuntimeException("Error while handling message", e);
 			}
+			return new PuValue("Missing command");
 		}
-		return new PuValue("Missing command");
+		return new PuValue("Request data is null");
 	}
 
 	@Override
