@@ -41,7 +41,7 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 				criteria.append(F.SERVICE_TYPE, data.getString(F.SERVICE_TYPE));
 			}
 			if (data.variableExists(F.TOKEN)) {
-				criteria.append(F.TOKEN, data.getString(F.TOKEN));
+				criteria.append(F.ID, data.getString(F.TOKEN));
 			}
 
 			FindIterable<Document> cursor = collection.find(criteria);
