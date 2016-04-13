@@ -5,6 +5,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.gaia.hermes2.bean.PushTaskBean;
+
 public class BaseHermes2Notification implements Hermes2Notification {
 
 	private final Set<String> recipients = new HashSet<>();
@@ -77,6 +79,6 @@ public class BaseHermes2Notification implements Hermes2Notification {
 
 	public void setTitle(String title) {
 		this.title = title;
-	}
+	}	
 
 }

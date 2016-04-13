@@ -7,6 +7,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import com.gaia.hermes2.bean.PushTaskBean;
+import com.gaia.hermes2.model.PushTaskModel;
 import com.gaia.hermes2.service.Hermes2AbstractPushNotificationService;
 import com.gaia.hermes2.service.Hermes2Notification;
 import com.gaia.hermes2.statics.F;
@@ -50,10 +52,22 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 		MulticastResult result = this.client.send(message, recipients,
 				this.clientConfig.getInteger(RETRIES, DEFAULT_RETRIES));
 		getLogger().debug("success: " + result.getSuccess() + ", failure: " + result.getFailure());
+		
+	}
+	
+	private void _send(Message message, List<String> recipients,PushTaskBean bean) throws IOException {
+		getLogger().debug("sending message {} to {} recipients", message, recipients.size());
+		MulticastResult result = this.client.send(message, recipients,
+				this.clientConfig.getInteger(RETRIES, DEFAULT_RETRIES));
+		getLogger().debug("success: " + result.getSuccess() + ", failure: " + result.getFailure());
+		
+		bean.getGcmSuccessCount().addAndGet(result.getSuccess());
+		bean.getGcmFailureCount().addAndGet(result.getFailure());
+		
 	}
 
 	@Override
-	public void push(Hermes2Notification notification) {
+	public void push(Hermes2Notification notification,PushTaskBean taskBean,PushTaskModel model) {
 		List<List<String>> batchs = new ArrayList<>();
 
 		int partitionCount = notification.getRecipients().size() / this.clientConfig.getInteger(BATCH_CHUNK_SIZE);
@@ -75,13 +89,15 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 			messageBuilder.addData(F.TITLE, title);
 		}
 		final Message message = messageBuilder.build();
+		
+		
 		for (List<String> recipients : batchs) {
 			this.executor.submit(new Runnable() {
 
 				@Override
 				public void run() {
 					try {
-						Hermes2GCMService.this._send(message, recipients);
+						Hermes2GCMService.this._send(message, recipients,taskBean);
 					} catch (IOException e) {
 						getLogger().error("Unable to send message: ", e);
 					} finally {
@@ -93,6 +109,14 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 
 		try {
 			doneSignal.await();
+			taskBean.autoLastModify();
+			model.updateGcmPushCount(taskBean);
+			getLogger().debug("update bean: "+taskBean.getGcmSuccessCount()+"  thread: "+taskBean.getThreadCount().intValue());
+			if(taskBean.getThreadCount().decrementAndGet() <= 0){
+				taskBean.setDone(true);
+				model.doneTask(taskBean);
+				getLogger().debug("done task.....................");
+			}
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
 		}

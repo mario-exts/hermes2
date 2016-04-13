@@ -3,10 +3,15 @@ package com.gaia.hermes2.service.apns;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import com.gaia.hermes2.bean.PushTaskBean;
+import com.gaia.hermes2.model.PushTaskModel;
 import com.gaia.hermes2.service.Hermes2AbstractPushNotificationService;
 import com.gaia.hermes2.service.Hermes2Notification;
 import com.gaia.hermes2.statics.F;
@@ -14,6 +19,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.nhb.common.data.PuObject;
 import com.nhb.common.data.PuObjectRO;
 import com.relayrides.pushy.apns.ApnsClient;
+import com.relayrides.pushy.apns.PushNotificationResponse;
 import com.relayrides.pushy.apns.util.ApnsPayloadBuilder;
 
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -77,7 +83,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 	}
 
 	@Override
-	public void push(Hermes2Notification notification) {
+	public void push(Hermes2Notification notification,PushTaskBean bean,PushTaskModel model) {
 
 		final ApnsPayloadBuilder payloadBuilder = new ApnsPayloadBuilder();
 		payloadBuilder.setAlertBody(notification.getMessage());
@@ -112,6 +118,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 
 		getLogger().debug("will send {} message(s) per client", numMessagePerClient);
 		final String topic = this.applicationConfig.getString(F.TOPIC, null);
+		CountDownLatch countDown=new CountDownLatch(clients.size());
 		for (int i = 0; i < clients.size(); i++) {
 			final int index = i;
 			this.executor.submit(new Runnable() {
@@ -122,18 +129,51 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 				@Override
 				public void run() {
 					try {
+						
 						int startId = clientId * numMessagePerClient;
 						int endId = startId + numMessagePerClient;
+						int successCount=0;
+						int failureCount=0;
 						getLogger().debug("start sending from token {} to {}", startId, endId);
+						
 						for (int i = startId; i < endId; i++) {
 							NotificationItem notificationItem = new NotificationItem(recipients[i], payload, topic);
-							this.client.sendNotification(notificationItem);
+							Future<PushNotificationResponse<NotificationItem>> future=this.client.sendNotification(notificationItem);
+							if(future.get().isAccepted()){
+								successCount++;
+							}else{
+								failureCount++;
+							}
 						}
+						bean.getApnsSuccessCount().addAndGet(successCount);
+						bean.getApnsFailureCount().addAndGet(failureCount);
+						bean.autoLastModify();
+						model.updateApnsPushCount(bean);
+						
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (ExecutionException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
 					} finally {
 						apnsClientPool.returnObject(this.client);
+						countDown.countDown();
 					}
 				}
 			});
+		}
+		
+		try{
+			countDown.await();
+			int i=bean.getThreadCount().decrementAndGet();
+			if(i<=0){
+				bean.setDone(true);
+				model.doneTask(bean);
+				getLogger().debug("done task.....................");
+			}
+		}catch(InterruptedException e){
+			throw new RuntimeException(e);
 		}
 	}
 

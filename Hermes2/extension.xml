@@ -8,7 +8,7 @@
 			</endpoint>
 			<credentials>
 				<entry>
-					<username>root</username>
+					<username>local_admin</username>
 					<password>123456</password>
 					<authdb>admin</authdb>
 				</entry>
@@ -80,6 +80,7 @@
 				<variable name="serviceConfigFile" type="String">conf/services.properties</variable>
 				<variable name="commands" type="puobject">
 					<variable name="push" type="String">com.gaia.hermes2.processor.push.PushNotificationProcessor</variable>
+					<variable name="checkTask" type="String">com.gaia.hermes2.processor.push.CheckPushStateProcessor</variable>
 				</variable>
 			</variables>
 		</handler>

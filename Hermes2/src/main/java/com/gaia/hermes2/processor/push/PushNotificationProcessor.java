@@ -8,6 +8,8 @@ import java.util.Map;
 import org.bson.Document;
 
 import com.gaia.hermes2.Hermes2PushHandler;
+import com.gaia.hermes2.bean.PushTaskBean;
+import com.gaia.hermes2.model.PushTaskModel;
 import com.gaia.hermes2.processor.Hermes2BaseProcessor;
 import com.gaia.hermes2.service.BaseHermes2Notification;
 import com.gaia.hermes2.service.Hermes2PushNotificationService;
@@ -34,7 +36,6 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 					: database.getCollection(F.DATABASE_DEVICE_TOKEN);
 
 			String applicationId = data.getString(F.APPLICATION_ID);
-
 			Document criteria = new Document();
 			criteria.append(F.APPLICATION_ID, applicationId);
 			if (data.variableExists(F.SERVICE_TYPE)) {
@@ -46,9 +47,10 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 
 			FindIterable<Document> cursor = collection.find(criteria);
 			MongoCursor<Document> it = cursor.iterator();
-
+			getLogger().debug("iterator:  "+cursor.first());
 			Map<String, Collection<String>> targetDevicesByService = new HashMap<>();
-
+			Map<String, PushTaskBean> tasks=new HashMap<>();
+			
 			Map<String, Integer> countByService = new HashMap<>();
 			while (it.hasNext()) {
 				Document row = it.next();
@@ -63,13 +65,44 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 					countByService.put(row.getString(F.SERVICE_TYPE),
 							countByService.get(row.getString(F.SERVICE_TYPE)) + 1);
 				}
-			}
 
+			}
+			
+			PushTaskBean bean=new PushTaskBean();
+			bean.setAppId(applicationId);
+			bean.autoStartTime();
+			int gcmCount=0;
+			int apnsCount=0;
+			if(countByService.containsKey("gcm")){
+				gcmCount=countByService.get("gcm");
+			}
+			if(countByService.containsKey("apns")){
+				apnsCount=countByService.get("apns");
+			}
+			bean.autoId();
+			bean.setTotalCount(gcmCount + apnsCount);
+			bean.setApnsCount(apnsCount);
+			bean.setGcmCount(gcmCount);
+//			bean.setLastModify(bean.getStartTime());
+			bean.getThreadCount().addAndGet(targetDevicesByService.size());
+			PushTaskModel model=new PushTaskModel((Hermes2PushHandler) handler);
+			
+			model.insert(bean);
+			
 			String message = data.getString(F.MESSAGE);
 			targetDevicesByService.entrySet().parallelStream().forEach(entry -> {
 				Hermes2PushNotificationService service = pushHandler.getPushService(entry.getKey());
 				if (service != null) {
-					service.push(new BaseHermes2Notification(entry.getValue(), message, data.getString(F.TITLE, null)));
+					Thread t=new Thread(new Runnable() {
+						
+						@Override
+						public void run() {
+							// TODO Auto-generated method stub
+							service.push(new BaseHermes2Notification(entry.getValue(), message, data.getString(F.TITLE, null)),bean,model);
+						}
+					});
+					t.start();
+					
 				} else {
 					getLogger().warn("Unable to get notification service for authenticator id " + entry.getKey());
 				}

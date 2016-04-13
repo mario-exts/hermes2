@@ -2,6 +2,8 @@ package com.gaia.hermes2.service;
 
 import java.util.Set;
 
+import com.gaia.hermes2.bean.PushTaskBean;
+
 public interface Hermes2Notification {
 
 	/**
@@ -17,4 +19,5 @@ public interface Hermes2Notification {
 	int getBadge();
 
 	String getTitle();
+	
 }
