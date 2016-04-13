@@ -16,6 +16,7 @@ import com.google.android.gcm.server.Message;
 import com.google.android.gcm.server.Message.Builder;
 import com.google.android.gcm.server.MulticastResult;
 import com.google.android.gcm.server.Sender;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.nhb.common.data.PuObject;
 import com.nhb.common.data.PuObjectRO;
 
@@ -39,7 +40,8 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 		this.applicationConfig = properties.getPuObject(F.APPLICATION_CONFIG, new PuObject());
 
 		this.client = new Sender(applicationConfig.getString(F.AUTHENTICATOR));
-		this.executor = Executors.newCachedThreadPool();
+		this.executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+				.setNameFormat("Hermes2GCM " + applicationConfig.getString(F.ID) + " #%d").build());
 	}
 
 	@Override
