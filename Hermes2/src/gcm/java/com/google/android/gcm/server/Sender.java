@@ -21,8 +21,8 @@ import static com.google.android.gcm.server.Constants.JSON_ERROR;
 import static com.google.android.gcm.server.Constants.JSON_FAILURE;
 import static com.google.android.gcm.server.Constants.JSON_MESSAGE_ID;
 import static com.google.android.gcm.server.Constants.JSON_MULTICAST_ID;
-import static com.google.android.gcm.server.Constants.JSON_NOTIFICATION_BADGE;
 import static com.google.android.gcm.server.Constants.JSON_NOTIFICATION;
+import static com.google.android.gcm.server.Constants.JSON_NOTIFICATION_BADGE;
 import static com.google.android.gcm.server.Constants.JSON_NOTIFICATION_BODY;
 import static com.google.android.gcm.server.Constants.JSON_NOTIFICATION_BODY_LOC_ARGS;
 import static com.google.android.gcm.server.Constants.JSON_NOTIFICATION_BODY_LOC_KEY;
@@ -36,24 +36,18 @@ import static com.google.android.gcm.server.Constants.JSON_NOTIFICATION_TITLE_LO
 import static com.google.android.gcm.server.Constants.JSON_NOTIFICATION_TITLE_LOC_KEY;
 import static com.google.android.gcm.server.Constants.JSON_PAYLOAD;
 import static com.google.android.gcm.server.Constants.JSON_REGISTRATION_IDS;
-import static com.google.android.gcm.server.Constants.JSON_TO;
 import static com.google.android.gcm.server.Constants.JSON_RESULTS;
 import static com.google.android.gcm.server.Constants.JSON_SUCCESS;
+import static com.google.android.gcm.server.Constants.JSON_TO;
 import static com.google.android.gcm.server.Constants.PARAM_COLLAPSE_KEY;
+import static com.google.android.gcm.server.Constants.PARAM_CONTENT_AVAILABLE;
 import static com.google.android.gcm.server.Constants.PARAM_DELAY_WHILE_IDLE;
 import static com.google.android.gcm.server.Constants.PARAM_DRY_RUN;
 import static com.google.android.gcm.server.Constants.PARAM_PRIORITY;
-import static com.google.android.gcm.server.Constants.PARAM_CONTENT_AVAILABLE;
 import static com.google.android.gcm.server.Constants.PARAM_RESTRICTED_PACKAGE_NAME;
 import static com.google.android.gcm.server.Constants.PARAM_TIME_TO_LIVE;
 import static com.google.android.gcm.server.Constants.TOKEN_CANONICAL_REG_ID;
 import static com.google.android.gcm.server.Constants.TOPIC_PREFIX;
-
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.JSONValue;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -68,8 +62,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Helper class to send messages to the GCM service using an API Key.
@@ -88,7 +88,7 @@ public class Sender {
 	protected static final int MAX_BACKOFF_DELAY = 1024000;
 
 	protected final Random random = new Random();
-	protected static final Logger logger = Logger.getLogger(Sender.class.getName());
+	protected static final Logger logger = LoggerFactory.getLogger(Sender.class.getName());
 
 	private final String key;
 
@@ -134,9 +134,7 @@ public class Sender {
 		boolean tryAgain;
 		do {
 			attempt++;
-			if (logger.isLoggable(Level.FINE)) {
-				logger.fine("Attempt #" + attempt + " to send message " + message + " to regIds " + to);
-			}
+			logger.debug("Attempt #" + attempt + " to send message " + message + " to regIds " + to);
 			result = sendNoRetry(message, to);
 			tryAgain = result == null && attempt <= retries;
 			if (tryAgain) {
@@ -190,7 +188,7 @@ public class Sender {
 					String error = (String) jsonResult.get(JSON_ERROR);
 					resultBuilder.messageId(messageId).canonicalRegistrationId(canonicalRegId).errorCode(error);
 				} else {
-					logger.log(Level.WARNING, "Found null or " + jsonResults.size() + " results, expected one");
+					logger.warn("Found null or " + jsonResults.size() + " results, expected one");
 					return null;
 				}
 			} else if (to.startsWith(TOPIC_PREFIX)) {
@@ -203,8 +201,7 @@ public class Sender {
 					String error = (String) jsonResponse.get(JSON_ERROR);
 					resultBuilder.errorCode(error);
 				} else {
-					logger.log(Level.WARNING,
-							"Expected " + JSON_MESSAGE_ID + " or " + JSON_ERROR + " found: " + responseBody);
+					logger.warn("Expected " + JSON_MESSAGE_ID + " or " + JSON_ERROR + " found: " + responseBody);
 					return null;
 				}
 			} else if (jsonResponse.containsKey(JSON_SUCCESS) && jsonResponse.containsKey(JSON_FAILURE)) {
@@ -222,7 +219,7 @@ public class Sender {
 				}
 				resultBuilder.success(success).failure(failure).failedRegistrationIds(failedIds);
 			} else {
-				logger.warning("Unrecognized response: " + responseBody);
+				logger.warn("Unrecognized response: " + responseBody);
 				throw newIoException(responseBody, new Exception("Unrecognized response."));
 			}
 			return resultBuilder.build();
@@ -271,18 +268,16 @@ public class Sender {
 		do {
 			multicastResult = null;
 			attempt++;
-			if (logger.isLoggable(Level.FINE)) {
-				logger.fine("Attempt #" + attempt + " to send message " + message + " to regIds " + unsentRegIds);
-			}
+			logger.debug("Attempt #" + attempt + " to send message " + message + " to regIds " + unsentRegIds);
 			try {
 				multicastResult = sendNoRetry(message, unsentRegIds);
 			} catch (IOException e) {
 				// no need for WARNING since exception might be already logged
-				logger.log(Level.FINEST, "IOException on attempt " + attempt, e);
+				logger.error("IOException on attempt " + attempt, e);
 			}
 			if (multicastResult != null) {
 				long multicastId = multicastResult.getMulticastId();
-				logger.fine("multicast_id on attempt # " + attempt + ": " + multicastId);
+				logger.debug("multicast_id on attempt # " + attempt + ": " + multicastId);
 				multicastIds.add(multicastId);
 				unsentRegIds = updateStatus(unsentRegIds, results, multicastResult);
 				tryAgain = !unsentRegIds.isEmpty() && attempt <= retries;
@@ -416,37 +411,37 @@ public class Sender {
 
 	private String makeGcmHttpRequest(Map<Object, Object> jsonRequest) throws InvalidRequestException {
 		String requestBody = JSONValue.toJSONString(jsonRequest);
-		logger.finest("JSON request: " + requestBody);
+		logger.debug("JSON request: " + requestBody);
 		HttpURLConnection conn;
 		int status;
 		try {
 			conn = post(GCM_SEND_ENDPOINT, "application/json", requestBody);
 			status = conn.getResponseCode();
 		} catch (IOException e) {
-			logger.log(Level.FINE, "IOException posting to GCM", e);
+			logger.error("IOException posting to GCM", e);
 			return null;
 		}
 		String responseBody;
 		if (status != 200) {
 			try {
 				responseBody = getAndClose(conn.getErrorStream());
-				logger.finest("JSON error response: " + responseBody);
+				logger.debug("JSON error response: " + responseBody);
 			} catch (IOException e) {
 				// ignore the exception since it will thrown an
 				// InvalidRequestException
 				// anyways
 				responseBody = "N/A";
-				logger.log(Level.FINE, "Exception reading response: ", e);
+				logger.error("Exception reading response: ", e);
 			}
 			throw new InvalidRequestException(status, responseBody);
 		}
 		try {
 			responseBody = getAndClose(conn.getInputStream());
 		} catch (IOException e) {
-			logger.log(Level.WARNING, "IOException reading response", e);
+			logger.error("IOException reading response", e);
 			return null;
 		}
-		logger.finest("JSON response: " + responseBody);
+		logger.debug("JSON response: " + responseBody);
 		return responseBody;
 	}
 
@@ -499,7 +494,7 @@ public class Sender {
 		// cause
 		// is only available on Java 6
 		String msg = "Error parsing JSON response (" + responseBody + ")";
-		logger.log(Level.WARNING, msg, e);
+		logger.warn(msg, e);
 		return new IOException(msg + ":" + e);
 	}
 
@@ -509,7 +504,7 @@ public class Sender {
 				closeable.close();
 			} catch (IOException e) {
 				// ignore error
-				logger.log(Level.FINEST, "IOException closing stream", e);
+				logger.error("IOException closing stream", e);
 			}
 		}
 	}
@@ -576,10 +571,10 @@ public class Sender {
 			throw new IllegalArgumentException("arguments cannot be null");
 		}
 		if (!url.startsWith("https://")) {
-			logger.warning("URL does not use https: " + url);
+			logger.warn("URL does not use https: " + url);
 		}
-		logger.fine("Sending POST to " + url);
-		logger.finest("POST body: " + body);
+		logger.debug("Sending POST to " + url);
+		logger.debug("POST body: " + body);
 		byte[] bytes = body.getBytes(UTF8);
 		HttpURLConnection conn = getConnection(url);
 		conn.setDoOutput(true);

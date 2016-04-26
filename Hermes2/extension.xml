@@ -51,9 +51,36 @@
 				<threadnamepattern>Hermes2 Http Register Worker #%d</threadnamepattern>
 			</workerpool>
 		</http>
+		<http>
+			<name>hermes_http_register_gateway</name>
+			<server>hermes2_http_server_8801</server>
+			<usemultipath>true</usemultipath>
+			<deserializer>com.gaia.hermes2.http.deserializer.Hermes2HttpGatewayDeserialier</deserializer>
+			<path>/hermes</path>
+			<async>true</async>
+			<workerpool>
+				<poolsize>8</poolsize>
+				<ringbuffersize>2048</ringbuffersize>
+				<threadnamepattern>Hermes Http Register Worker #%d</threadnamepattern>
+			</workerpool>
+		</http>
 	</gateways>
 
 	<lifecycles>
+		<handler>
+			<name>hermes_register_handler</name>
+			<handle>com.gaia.hermes.HermesRegisterHandler</handle>
+			<bind>
+				<gateway>hermes_http_register_gateway</gateway>
+			</bind>
+			<variables>
+				<variable name="hermes2HandlerName" type="String">hermes2_register_handler</variable>
+				<variable name="appId" type="String">b03e405c-2cf8-4fc0-ba85-62cfd612f552</variable>
+				<variable name="isSandbox" type="boolean">true</variable>
+				<!-- <variable name="gcmAuthenticatorId" type="String"></variable> -->
+				<!-- <variable name="apnsAuthenticatorId" type="String"></variable> -->
+			</variables>
+		</handler>
 		<handler>
 			<name>hermes2_register_handler</name>
 			<handle>com.gaia.hermes2.Hermes2RegisterHandler</handle>
