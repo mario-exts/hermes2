@@ -4,6 +4,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.bson.Document;
 
@@ -14,6 +17,7 @@ import com.gaia.hermes2.processor.Hermes2BaseProcessor;
 import com.gaia.hermes2.service.BaseHermes2Notification;
 import com.gaia.hermes2.service.Hermes2PushNotificationService;
 import com.gaia.hermes2.statics.F;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mario.entity.MessageHandler;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
@@ -26,6 +30,8 @@ import com.nhb.common.data.PuObjectRO;
 
 public class PushNotificationProcessor extends Hermes2BaseProcessor {
 
+	private ExecutorService executor;
+	
 	@Override
 	protected PuElement process(MessageHandler handler, PuObjectRO data) {
 		if (handler instanceof Hermes2PushHandler) {
@@ -86,29 +92,29 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 //			bean.setLastModify(bean.getStartTime());
 			bean.getThreadCount().addAndGet(targetDevicesByService.size());
 			PushTaskModel model=new PushTaskModel((Hermes2PushHandler) handler);
-			
 			model.insert(bean);
 			
 			String message = data.getString(F.MESSAGE);
+			this.executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+					.setNameFormat("Hermes2PushNotification " + " #%d").build());
 			targetDevicesByService.entrySet().parallelStream().forEach(entry -> {
 				Hermes2PushNotificationService service = pushHandler.getPushService(entry.getKey());
 				if (service != null) {
-					Thread t=new Thread(new Runnable() {
-						
+					this.executor.execute(new Runnable() {
 						@Override
 						public void run() {
-							// TODO Auto-generated method stub
 							service.push(new BaseHermes2Notification(entry.getValue(), message, data.getString(F.TITLE, null)),bean,model);
 						}
 					});
-					t.start();
 					
 				} else {
 					getLogger().warn("Unable to get notification service for authenticator id " + entry.getKey());
 				}
 			});
-
-			return PuObject.fromObject(new MapTuple<>(F.STATUS, 0, F.TARGETS, countByService));
+			
+			PuObject result=PuObject.fromObject(new MapTuple<>(F.STATUS, 0, F.TARGETS, countByService));
+			result.set(F.ID, bean.getId());
+			return result;
 		}
 		return null;
 	}

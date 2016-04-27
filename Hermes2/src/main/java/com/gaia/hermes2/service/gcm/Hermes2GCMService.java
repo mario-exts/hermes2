@@ -12,11 +12,13 @@ import com.gaia.hermes2.model.PushTaskModel;
 import com.gaia.hermes2.service.Hermes2AbstractPushNotificationService;
 import com.gaia.hermes2.service.Hermes2Notification;
 import com.gaia.hermes2.statics.F;
+import com.google.android.gcm.server.AsyncSender;
 import com.google.android.gcm.server.Message;
 import com.google.android.gcm.server.Message.Builder;
 import com.google.android.gcm.server.MulticastResult;
 import com.google.android.gcm.server.Sender;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.nhb.common.async.Callback;
 import com.nhb.common.data.PuObject;
 import com.nhb.common.data.PuObjectRO;
 
@@ -32,13 +34,13 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 	private Sender client;
 	private PuObjectRO clientConfig;
 	private PuObjectRO applicationConfig;
-
+	private AsyncSender asyncClient;
 	@Override
 	public void init(PuObjectRO properties) {
 		getLogger().debug("initializing {} with properties: {}", Hermes2GCMService.class.getName(), properties);
 		this.clientConfig = properties.getPuObject(F.CLIENT_CONFIG, new PuObject());
 		this.applicationConfig = properties.getPuObject(F.APPLICATION_CONFIG, new PuObject());
-
+		this.asyncClient=new AsyncSender(applicationConfig.getString(F.AUTHENTICATOR));
 		this.client = new Sender(applicationConfig.getString(F.AUTHENTICATOR));
 		this.executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
 				.setNameFormat("Hermes2GCM " + applicationConfig.getString(F.ID) + " #%d").build());
@@ -49,11 +51,36 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 		// do nothing
 	}
 
-	private void _send(Message message, List<String> recipients) throws IOException {
+//	private void _send(Message message, List<String> recipients) throws IOException {
+//		getLogger().debug("sending message {} to {} recipients", message, recipients.size());
+//		MulticastResult result = this.client.send(message, recipients,
+//				this.clientConfig.getInteger(RETRIES, DEFAULT_RETRIES));
+//		getLogger().debug("success: " + result.getSuccess() + ", failure: " + result.getFailure());
+//		
+//	}
+	
+	private void asyncSend(Message message, List<String> recipients,PushTaskBean bean,PushTaskModel model) throws IOException {
 		getLogger().debug("sending message {} to {} recipients", message, recipients.size());
-		MulticastResult result = this.client.send(message, recipients,
-				this.clientConfig.getInteger(RETRIES, DEFAULT_RETRIES));
-		getLogger().debug("success: " + result.getSuccess() + ", failure: " + result.getFailure());
+		Callback<MulticastResult> callback=new Callback<MulticastResult>() {
+
+			@Override
+			public void apply(MulticastResult result) {
+				getLogger().debug("success: " + result.getSuccess() + ", failure: " + result.getFailure()+"  thread: "+bean.getThreadCount());
+				bean.getGcmSuccessCount().addAndGet(result.getSuccess());
+				bean.getGcmFailureCount().addAndGet(result.getFailure());
+				bean.autoLastModify();
+				model.updateGcmPushCount(bean);
+				if(bean.getThreadCount().decrementAndGet() < 1){					
+					bean.setDone(true);
+					model.doneTask(bean);
+					getLogger().debug("done task.....................");
+				}
+			}
+		};
+		
+		this.asyncClient.send(message, recipients,
+				this.clientConfig.getInteger(RETRIES, DEFAULT_RETRIES)
+				,callback);
 		
 	}
 	
@@ -83,8 +110,6 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 		for (String recipient : notification.getRecipients()) {
 			batchs.get(index++ % partitionCount).add(recipient);
 		}
-
-		CountDownLatch doneSignal = new CountDownLatch(partitionCount);
 		String title = notification.getTitle();
 		Builder messageBuilder = new Message.Builder().addData(F.MESSAGE, notification.getMessage());
 		if (title != null) {
@@ -92,35 +117,18 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 		}
 		final Message message = messageBuilder.build();
 		
-		
 		for (List<String> recipients : batchs) {
 			this.executor.submit(new Runnable() {
 
 				@Override
 				public void run() {
 					try {
-						Hermes2GCMService.this._send(message, recipients,taskBean);
+						Hermes2GCMService.this.asyncSend(message, recipients,taskBean,model);
 					} catch (IOException e) {
 						getLogger().error("Unable to send message: ", e);
-					} finally {
-						doneSignal.countDown();
 					}
 				}
 			});
-		}
-
-		try {
-			doneSignal.await();
-			taskBean.autoLastModify();
-			model.updateGcmPushCount(taskBean);
-			getLogger().debug("update bean: "+taskBean.getGcmSuccessCount()+"  thread: "+taskBean.getThreadCount().intValue());
-			if(taskBean.getThreadCount().decrementAndGet() <= 0){
-				taskBean.setDone(true);
-				model.doneTask(taskBean);
-				getLogger().debug("done task.....................");
-			}
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
 		}
 	}
 

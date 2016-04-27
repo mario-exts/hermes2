@@ -1,5 +1,6 @@
 package com.gaia.hermes2.service.apns;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -107,6 +108,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 			try {
 				clients.add(this.apnsClientPool.borrowObject());
 			} catch (Exception e) {
+				bean.getThreadCount().decrementAndGet();
 				break;
 			}
 		}
@@ -149,7 +151,8 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 						bean.getApnsFailureCount().addAndGet(failureCount);
 						bean.autoLastModify();
 						model.updateApnsPushCount(bean);
-						
+						int i=bean.getThreadCount().decrementAndGet();
+						getLogger().debug("thread 1 : "+i);
 					} catch (InterruptedException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -157,8 +160,9 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					} finally {
-						apnsClientPool.returnObject(this.client);
 						countDown.countDown();
+						apnsClientPool.returnObject(this.client);
+						
 					}
 				}
 			});
@@ -167,6 +171,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 		try{
 			countDown.await();
 			int i=bean.getThreadCount().decrementAndGet();
+			getLogger().debug("thread: "+i);
 			if(i<=0){
 				bean.setDone(true);
 				model.doneTask(bean);
