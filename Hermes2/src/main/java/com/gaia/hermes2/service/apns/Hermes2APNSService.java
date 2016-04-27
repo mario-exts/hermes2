@@ -108,7 +108,6 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 			try {
 				clients.add(this.apnsClientPool.borrowObject());
 			} catch (Exception e) {
-				bean.getThreadCount().decrementAndGet();
 				break;
 			}
 		}
