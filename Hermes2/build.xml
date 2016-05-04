@@ -59,7 +59,7 @@
 		</copy>
 	</target>
 
-	<target name="deploy" depends="pack">
+	<target name="deploy">
 		<delete dir="${deploy.path}/${ant.project.name}" />
 		<copy todir="${deploy.path}">
 			<fileset dir="${dist.ext}" />

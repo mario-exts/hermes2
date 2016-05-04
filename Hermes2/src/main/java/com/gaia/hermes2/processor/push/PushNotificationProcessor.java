@@ -4,9 +4,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bson.Document;
 
@@ -24,7 +24,6 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.nhb.common.data.MapTuple;
-import com.nhb.common.data.PuDataType;
 import com.nhb.common.data.PuElement;
 import com.nhb.common.data.PuObject;
 import com.nhb.common.data.PuObjectRO;
@@ -32,6 +31,7 @@ import com.nhb.common.data.PuObjectRO;
 public class PushNotificationProcessor extends Hermes2BaseProcessor {
 
 	private ExecutorService executor;
+	private AtomicInteger counter=new AtomicInteger(0);
 
 	@Override
 	protected PuElement process(MessageHandler handler, PuObjectRO data) {
@@ -56,7 +56,7 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 			MongoCursor<Document> it = cursor.iterator();
 			getLogger().debug("iterator:  " + cursor.first());
 			Map<String, Collection<String>> targetDevicesByService = new HashMap<>();
-			Map<String, PushTaskBean> tasks = new HashMap<>();
+//			Map<String, PushTaskBean> tasks = new HashMap<>();
 
 			Map<String, Integer> countByService = new HashMap<>();
 			while (it.hasNext()) {
@@ -74,7 +74,7 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 				}
 
 			}
-
+			getLogger().debug("taskbean:  "+targetDevicesByService.size());
 			PushTaskBean bean = new PushTaskBean();
 			bean.setAppId(applicationId);
 			bean.autoStartTime();
@@ -94,10 +94,18 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 			bean.getThreadCount().addAndGet(targetDevicesByService.size());
 			PushTaskModel model = new PushTaskModel((Hermes2PushHandler) handler);
 			model.insert(bean);
-
+			
 			String message = data.getString(F.MESSAGE);
-			((PuObject) data).setType(F.MESSAGE_ID, PuDataType.STRING);
-			int messageId = data.getInteger(F.MESSAGE_ID, 1);
+			String messageId;
+			if(data.variableExists(F.MESSAGE_ID)){
+				messageId = data.getString(F.MESSAGE_ID, "1");
+			}else{
+				messageId=counter.incrementAndGet()+"";
+				if(counter.get()>20000){
+					counter.set(0);
+				}
+			}
+			
 
 			this.executor = Executors.newCachedThreadPool(
 					new ThreadFactoryBuilder().setNameFormat("Hermes2PushNotification " + " #%d").build());
@@ -113,6 +121,7 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 					});
 
 				} else {
+					bean.getThreadCount().decrementAndGet();
 					getLogger().warn("Unable to get notification service for authenticator id " + entry.getKey());
 				}
 			});

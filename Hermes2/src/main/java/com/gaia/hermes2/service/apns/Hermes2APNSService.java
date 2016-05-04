@@ -52,7 +52,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 
 	@Override
 	public void init(PuObjectRO initParams) {
-		getLogger().debug("Initializing {} with properties: {}", Hermes2APNSService.class.getName(), initParams);
+//		getLogger().debug("Initializing {} with properties: {}", Hermes2APNSService.class.getName(), initParams);
 		this.clientConfig = initParams.getPuObject(F.CLIENT_CONFIG);
 		this.applicationConfig = initParams.getPuObject(F.APPLICATION_CONFIG);
 		this.nioEventLoopGroup = new NioEventLoopGroup(

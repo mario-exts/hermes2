@@ -20,6 +20,6 @@ public interface Hermes2Notification {
 
 	String getTitle();
 	
-	int getMessageId();
+	String getMessageId();
 	
 }

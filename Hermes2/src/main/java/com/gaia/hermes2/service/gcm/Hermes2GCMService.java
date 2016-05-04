@@ -30,18 +30,15 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 	public static int DEFAULT_RETRIES = 1;
 
 	private ExecutorService executor;
-
-	private Sender client;
 	private PuObjectRO clientConfig;
 	private PuObjectRO applicationConfig;
 	private AsyncSender asyncClient;
 	@Override
 	public void init(PuObjectRO properties) {
-		getLogger().debug("initializing {} with properties: {}", Hermes2GCMService.class.getName(), properties);
+//		getLogger().debug("initializing {} with properties: {}", Hermes2GCMService.class.getName(), properties);
 		this.clientConfig = properties.getPuObject(F.CLIENT_CONFIG, new PuObject());
 		this.applicationConfig = properties.getPuObject(F.APPLICATION_CONFIG, new PuObject());
 		this.asyncClient=new AsyncSender(applicationConfig.getString(F.AUTHENTICATOR));
-		this.client = new Sender(applicationConfig.getString(F.AUTHENTICATOR));
 		this.executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
 				.setNameFormat("Hermes2GCM " + applicationConfig.getString(F.ID) + " #%d").build());
 	}
@@ -50,14 +47,6 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 	public void close() throws IOException {
 		// do nothing
 	}
-
-//	private void _send(Message message, List<String> recipients) throws IOException {
-//		getLogger().debug("sending message {} to {} recipients", message, recipients.size());
-//		MulticastResult result = this.client.send(message, recipients,
-//				this.clientConfig.getInteger(RETRIES, DEFAULT_RETRIES));
-//		getLogger().debug("success: " + result.getSuccess() + ", failure: " + result.getFailure());
-//		
-//	}
 	
 	private void asyncSend(Message message, List<String> recipients,PushTaskBean bean,PushTaskModel model) throws IOException {
 		getLogger().debug("sending message {} to {} recipients", message, recipients.size());
@@ -65,7 +54,7 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 
 			@Override
 			public void apply(MulticastResult result) {
-				getLogger().debug("success: " + result.getSuccess() + ", failure: " + result.getFailure()+"  thread: "+bean.getThreadCount());
+				getLogger().debug("success: " + result.getSuccess() + ", failure: " + result.getFailure()+"  thread: "+bean.getThreadCount().get());
 				bean.getGcmSuccessCount().addAndGet(result.getSuccess());
 				bean.getGcmFailureCount().addAndGet(result.getFailure());
 				bean.autoLastModify();
@@ -84,16 +73,6 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 		
 	}
 	
-	private void _send(Message message, List<String> recipients,PushTaskBean bean) throws IOException {
-		getLogger().debug("sending message {} to {} recipients", message, recipients.size());
-		MulticastResult result = this.client.send(message, recipients,
-				this.clientConfig.getInteger(RETRIES, DEFAULT_RETRIES));
-		getLogger().debug("success: " + result.getSuccess() + ", failure: " + result.getFailure());
-		
-		bean.getGcmSuccessCount().addAndGet(result.getSuccess());
-		bean.getGcmFailureCount().addAndGet(result.getFailure());
-		
-	}
 
 	@Override
 	public void push(Hermes2Notification notification,PushTaskBean taskBean,PushTaskModel model) {
@@ -115,8 +94,15 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 		if (title != null) {
 			messageBuilder.addData(F.TITLE, title);
 		}
-		final Message message = messageBuilder.build();
+		String messgeId=notification.getMessageId();
+		if(messgeId!=null){
+			messageBuilder.addData(F.MESSAGE_ID, messgeId);
+		}
 		
+		final Message message = messageBuilder.build();
+		if(batchs.size()==0){
+			taskBean.getThreadCount().decrementAndGet();
+		}
 		for (List<String> recipients : batchs) {
 			this.executor.submit(new Runnable() {
 
@@ -125,6 +111,7 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 					try {
 						Hermes2GCMService.this.asyncSend(message, recipients,taskBean,model);
 					} catch (IOException e) {
+						taskBean.getThreadCount().decrementAndGet();
 						getLogger().error("Unable to send message: ", e);
 					}
 				}
