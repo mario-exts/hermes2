@@ -1,7 +1,5 @@
 package com.gaia.hermes2.model;
 
-import javax.print.Doc;
-
 import org.bson.Document;
 
 import com.gaia.hermes2.Hermes2PushHandler;

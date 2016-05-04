@@ -50,6 +50,8 @@ import static com.google.android.gcm.server.Constants.TOKEN_CANONICAL_REG_ID;
 import static com.google.android.gcm.server.Constants.TOPIC_PREFIX;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.RequestBuilder;
+import org.eclipse.jetty.security.RunAsToken;
+
 import com.nhb.common.async.Callback;
 import com.nhb.common.data.PuArray;
 import com.nhb.common.data.PuElement;
@@ -64,6 +66,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -88,8 +92,8 @@ public class AsyncSender {
 	protected static final Logger logger = Logger.getLogger(AsyncSender.class.getName());
 
 	private final String key;
-
 	private HttpClientHelper http;
+	private ExecutorService callbackExecutor;
 
 	/**
 	 * Default constructor.
@@ -99,6 +103,7 @@ public class AsyncSender {
 	 */
 	public AsyncSender(String key) {
 		this.key = nonNull(key);
+		this.callbackExecutor=Executors.newCachedThreadPool();
 	}
 
 	/**
@@ -135,26 +140,34 @@ public class AsyncSender {
 
 			@Override
 			public void apply(Result result) {
-				if(null ==  result){
-					if(counter.incrementAndGet() <= retries){
-						if (logger.isLoggable(Level.FINE)) {
-							logger.fine("Attempt #" + attempt + " to send message " + message + " to regIds " + to);
+				Callback<Result> thisCallback=this;
+				callbackExecutor.execute(new Runnable() {
+					
+					@Override
+					public void run() {
+						if(null ==  result){
+							if(counter.incrementAndGet() <= retries){
+								if (logger.isLoggable(Level.FINE)) {
+									logger.fine("Attempt #" + attempt + " to send message " + message + " to regIds " + to);
+								}
+								try {
+									sendNoRetry(message, to,thisCallback);
+								} catch (IOException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
+								int sleepTime = backoff / 2 + random.nextInt(backoff);
+								sleep(sleepTime);
+//								if (2 * backoff < MAX_BACKOFF_DELAY) {
+//									backoff *= 2;
+//								}
+							}
+						}else{
+							callback.apply(result);
 						}
-						try {
-							sendNoRetry(message, to,this);
-						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-						int sleepTime = backoff / 2 + random.nextInt(backoff);
-						sleep(sleepTime);
-//						if (2 * backoff < MAX_BACKOFF_DELAY) {
-//							backoff *= 2;
-//						}
 					}
-				}else{
-					callback.apply(result);
-				}
+				});
+				
 			}
 			
 		};
@@ -185,68 +198,75 @@ public class AsyncSender {
 			@Override
 			public void apply(PuObject data) {
 				// TODO Auto-generated method stub
-				Result.Builder resultBuilder = new Result.Builder();
-				if(data.variableExists("results")){
-					PuArray arr=data.getPuArray("results");
-					if(arr.size()>=1){
-						PuObject puo=arr.remove(0).getPuObject();
-						String messageId = puo.getString(JSON_MESSAGE_ID,"");
-						String canonicalRegId = puo.getString(TOKEN_CANONICAL_REG_ID,"");
-						String error = puo.getString(JSON_ERROR,"");
-						if(messageId.length()>0){
-							resultBuilder.messageId(messageId);
-						}
-						if(canonicalRegId.length()>0){
-							resultBuilder.canonicalRegistrationId(canonicalRegId);
-						}
-						if(error.length()>0){
-							resultBuilder.errorCode(error);
-						}
-						callback.apply(resultBuilder.build());
-					}else{
-						logger.log(Level.WARNING, "Found null or " + arr.size() + " results, expected one");
-						callback.apply(null);
-						return;
-					}
-				}else if (to.startsWith(TOPIC_PREFIX)) {
-					if (data.variableExists(JSON_MESSAGE_ID)) {
-						// message_id is expected when this is the response from a
-						// topic message.
-						String messageId = data.getString(JSON_MESSAGE_ID,"");
-						resultBuilder.messageId(messageId);
-						callback.apply(resultBuilder.build());
-					} else if (data.variableExists(JSON_ERROR)) {
-						String error = data.get(JSON_ERROR);
-						resultBuilder.errorCode(error);
-						callback.apply(resultBuilder.build());
-					} else {
-						logger.log(Level.WARNING,
-								"Expected " + JSON_MESSAGE_ID + " or " + JSON_ERROR + " found: " + data.toJSON());
-						callback.apply(null);
-						return;
-					}
-				} else if (data.variableExists(JSON_SUCCESS) && data.variableExists(JSON_FAILURE)) {
-					// success and failure are expected when response is from group
-					// message.
-					int success = data.getInteger(JSON_SUCCESS);
-					int failure = data.getInteger(JSON_FAILURE);
-					List<String> failedIds = null;
-					if (data.variableExists("failed_registration_ids")) {
-						PuArray jFailedIds = data.getPuArray("failed_registration_ids");
-						failedIds = new ArrayList<String>();
-						while (jFailedIds.size()>0) {
-							failedIds.add(jFailedIds.remove(0).getString());
+				callbackExecutor.execute(new Runnable() {
+					@Override
+					public void run() {
+						Result.Builder resultBuilder = new Result.Builder();
+						
+						if(data.variableExists("results")){
+							PuArray arr=data.getPuArray("results");
+							if(arr.size()>=1){
+								PuObject puo=arr.remove(0).getPuObject();
+								String messageId = puo.getString(JSON_MESSAGE_ID,"");
+								String canonicalRegId = puo.getString(TOKEN_CANONICAL_REG_ID,"");
+								String error = puo.getString(JSON_ERROR,"");
+								if(messageId.length()>0){
+									resultBuilder.messageId(messageId);
+								}
+								if(canonicalRegId.length()>0){
+									resultBuilder.canonicalRegistrationId(canonicalRegId);
+								}
+								if(error.length()>0){
+									resultBuilder.errorCode(error);
+								}
+								callback.apply(resultBuilder.build());
+							}else{
+								logger.log(Level.WARNING, "Found null or " + arr.size() + " results, expected one");
+								callback.apply(null);
+								return;
+							}
+						}else if (to.startsWith(TOPIC_PREFIX)) {
+							if (data.variableExists(JSON_MESSAGE_ID)) {
+								// message_id is expected when this is the response from a
+								// topic message.
+								String messageId = data.getString(JSON_MESSAGE_ID,"");
+								resultBuilder.messageId(messageId);
+								callback.apply(resultBuilder.build());
+							} else if (data.variableExists(JSON_ERROR)) {
+								String error = data.get(JSON_ERROR);
+								resultBuilder.errorCode(error);
+								callback.apply(resultBuilder.build());
+							} else {
+								logger.log(Level.WARNING,
+										"Expected " + JSON_MESSAGE_ID + " or " + JSON_ERROR + " found: " + data.toJSON());
+								callback.apply(null);
+								return;
+							}
+						} else if (data.variableExists(JSON_SUCCESS) && data.variableExists(JSON_FAILURE)) {
+							// success and failure are expected when response is from group
+							// message.
+							int success = data.getInteger(JSON_SUCCESS);
+							int failure = data.getInteger(JSON_FAILURE);
+							List<String> failedIds = null;
+							if (data.variableExists("failed_registration_ids")) {
+								PuArray jFailedIds = data.getPuArray("failed_registration_ids");
+								failedIds = new ArrayList<String>();
+								while (jFailedIds.size()>0) {
+									failedIds.add(jFailedIds.remove(0).getString());
+									
+								}
+							}
+							resultBuilder.success(success).failure(failure).failedRegistrationIds(failedIds);
+							callback.apply(resultBuilder.build());
+						} else {
+							logger.warning("Unrecognized response: " + data.toJSON());
+//							throw new IOException(data.toJSON());
+							callback.apply(null);
 							
 						}
 					}
-					resultBuilder.success(success).failure(failure).failedRegistrationIds(failedIds);
-					callback.apply(resultBuilder.build());
-				} else {
-					logger.warning("Unrecognized response: " + data.toJSON());
-//					throw new IOException(data.toJSON());
-					callback.apply(null);
-					
-				}
+				});
+				
 			}
 		};
 		try {
@@ -293,64 +313,73 @@ public class AsyncSender {
 
 			@Override
 			public void apply(MulticastResult multicastResult) {
-				boolean isRetry=false;
-				List<String> unsentRegIds = new ArrayList<String>(regIds);
-				long multicastId=0;
-				List<Long> multicastIds = new ArrayList<Long>();
-				if(null ==  multicastResult){
-					if(counter.incrementAndGet() <= retries){
-						isRetry=true;
-					}
-				}else{
-					multicastId = multicastResult.getMulticastId();
-					logger.fine("multicast_id on attempt # " + counter.get() + ": " + multicastId);
-					multicastIds.add(multicastId);
-					unsentRegIds = updateStatus(unsentRegIds, results, multicastResult);
-					isRetry = !unsentRegIds.isEmpty() && counter.get() <= retries;
-				}
-				if(isRetry){
-					if (logger.isLoggable(Level.FINE)) {
-						logger.fine("Attempt #" + counter.get() + " to send message " + message + " to regIds " + regIds.size());
-					}
-					try {
-						sendNoRetry(message, regIds,this);
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					int sleepTime = backoff / 2 + random.nextInt(backoff);
-					sleep(sleepTime);
-//					if (2 * backoff < MAX_BACKOFF_DELAY) {
-//						backoff *= 2;
-//					}
-				}else{
-					if (multicastIds.isEmpty()) {
-						// all JSON posts failed due to GCM unavailability
-						callback.apply(null);
-					}
-					// calculate summary
-					int success = 0, failure = 0, canonicalIds = 0;
-					for (Result re : results.values()) {
-						if (re.getMessageId() != null) {
-							success++;
-							if (re.getCanonicalRegistrationId() != null) {
-								canonicalIds++;
+				Callback<MulticastResult> thisCallback=this;
+				callbackExecutor.execute(new Runnable() {
+					
+					@Override
+					public void run() {
+						boolean isRetry=false;
+						List<String> unsentRegIds = new ArrayList<String>(regIds);
+						long multicastId=0;
+						List<Long> multicastIds = new ArrayList<Long>();
+						if(null ==  multicastResult){
+							if(counter.incrementAndGet() <= retries){
+								isRetry=true;
 							}
-						} else {
-							failure++;
+						}else{
+							multicastId = multicastResult.getMulticastId();
+							logger.fine("multicast_id on attempt # " + counter.get() + ": " + multicastId);
+							multicastIds.add(multicastId);
+							unsentRegIds = updateStatus(unsentRegIds, results, multicastResult);
+							isRetry = !unsentRegIds.isEmpty() && counter.get() <= retries;
+						}
+						if(isRetry){
+							if (logger.isLoggable(Level.FINE)) {
+								logger.fine("Attempt #" + counter.get() + " to send message " + message + " to regIds " + regIds.size());
+							}
+							try {
+								sendNoRetry(message, regIds,thisCallback);
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							int sleepTime = backoff / 2 + random.nextInt(backoff);
+							sleep(sleepTime);
+//							if (2 * backoff < MAX_BACKOFF_DELAY) {
+//								backoff *= 2;
+//							}
+						}else{
+							if (multicastIds.isEmpty()) {
+								// all JSON posts failed due to GCM unavailability
+								callback.apply(null);
+							}
+							// calculate summary
+							int success = 0, failure = 0, canonicalIds = 0;
+							for (Result re : results.values()) {
+								if (re.getMessageId() != null) {
+									success++;
+									if (re.getCanonicalRegistrationId() != null) {
+										canonicalIds++;
+									}
+								} else {
+									failure++;
+								}
+							}
+							// build a new object with the overall result
+							multicastId = multicastIds.remove(0);
+							MulticastResult.Builder builder = new MulticastResult.Builder(success, failure, canonicalIds, multicastId)
+									.retryMulticastIds(multicastIds);
+							// add results, in the same order as the input
+							for (String regId : regIds) {
+								Result re = results.get(regId);
+								builder.addResult(re);
+							}
+							callback.apply(builder.build());
 						}
 					}
-					// build a new object with the overall result
-					multicastId = multicastIds.remove(0);
-					MulticastResult.Builder builder = new MulticastResult.Builder(success, failure, canonicalIds, multicastId)
-							.retryMulticastIds(multicastIds);
-					// add results, in the same order as the input
-					for (String regId : regIds) {
-						Result re = results.get(regId);
-						builder.addResult(re);
-					}
-					callback.apply(builder.build());
-				}
+				});
+				
+				
 			}
 			
 		};
@@ -414,37 +443,44 @@ public class AsyncSender {
 
 			@Override
 			public void apply(PuObject result) {
-				try{
-					int success = result.getInteger(JSON_SUCCESS);
-					int failure = result.getInteger(JSON_FAILURE);
-					int canonicalIds = result.getInteger(JSON_CANONICAL_IDS);
-					long multicastId = result.getLong(JSON_MULTICAST_ID);
-					MulticastResult.Builder builder = new MulticastResult.Builder(success, failure, canonicalIds, multicastId);
-					PuArray results = result.getPuArray(JSON_RESULTS);
-					if (results != null) {
-						while(results.size()>0){
-							Result.Builder resultObj=new Result.Builder();
-							PuObject puo=results.remove(0).getPuObject();
-							String messageId = puo.getString(JSON_MESSAGE_ID,"");
-							String canonicalRegId = puo.getString(TOKEN_CANONICAL_REG_ID,"");
-							String error = puo.getString(JSON_ERROR,"");
-							if(messageId.length()>0){
-								resultObj.messageId(messageId);
+				callbackExecutor.execute(new Runnable() {
+					
+					@Override
+					public void run() {
+						try{
+							int success = result.getInteger(JSON_SUCCESS);
+							int failure = result.getInteger(JSON_FAILURE);
+							int canonicalIds = result.getInteger(JSON_CANONICAL_IDS);
+							long multicastId = result.getLong(JSON_MULTICAST_ID);
+							MulticastResult.Builder builder = new MulticastResult.Builder(success, failure, canonicalIds, multicastId);
+							PuArray results = result.getPuArray(JSON_RESULTS);
+							if (results != null) {
+								while(results.size()>0){
+									Result.Builder resultObj=new Result.Builder();
+									PuObject puo=results.remove(0).getPuObject();
+									String messageId = puo.getString(JSON_MESSAGE_ID,"");
+									String canonicalRegId = puo.getString(TOKEN_CANONICAL_REG_ID,"");
+									String error = puo.getString(JSON_ERROR,"");
+									if(messageId.length()>0){
+										resultObj.messageId(messageId);
+									}
+									if(canonicalRegId.length()>0){
+										resultObj.canonicalRegistrationId(canonicalRegId);
+									}
+									if(error.length()>0){
+										resultObj.errorCode(error);
+									}
+									
+									builder.addResult(resultObj.build());
+								}
 							}
-							if(canonicalRegId.length()>0){
-								resultObj.canonicalRegistrationId(canonicalRegId);
-							}
-							if(error.length()>0){
-								resultObj.errorCode(error);
-							}
-							
-							builder.addResult(resultObj.build());
+							sendCallback.apply(builder.build());
+						}catch(Exception e){
+							sendCallback.apply(null);
 						}
 					}
-					sendCallback.apply(builder.build());
-				}catch(Exception e){
-					sendCallback.apply(null);
-				}
+				});
+				
 				
 			}
 		};

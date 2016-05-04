@@ -31,7 +31,7 @@ import com.nhb.common.data.PuObjectRO;
 public class PushNotificationProcessor extends Hermes2BaseProcessor {
 
 	private ExecutorService executor;
-	private AtomicInteger counter=new AtomicInteger(0);
+	private AtomicInteger counter = new AtomicInteger(0);
 
 	@Override
 	protected PuElement process(MessageHandler handler, PuObjectRO data) {
@@ -54,9 +54,12 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 
 			FindIterable<Document> cursor = collection.find(criteria);
 			MongoCursor<Document> it = cursor.iterator();
-			getLogger().debug("iterator:  " + cursor.first());
+			
+//			for(Document doc:cursor){
+//				getLogger().debug("iterator:  " + doc.toJson());
+//			}
 			Map<String, Collection<String>> targetDevicesByService = new HashMap<>();
-//			Map<String, PushTaskBean> tasks = new HashMap<>();
+			// Map<String, PushTaskBean> tasks = new HashMap<>();
 
 			Map<String, Integer> countByService = new HashMap<>();
 			while (it.hasNext()) {
@@ -74,7 +77,7 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 				}
 
 			}
-			getLogger().debug("taskbean:  "+targetDevicesByService.size());
+//			getLogger().debug("taskbean:  " + targetDevicesByService.size());
 			PushTaskBean bean = new PushTaskBean();
 			bean.setAppId(applicationId);
 			bean.autoStartTime();
@@ -94,22 +97,27 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 			bean.getThreadCount().addAndGet(targetDevicesByService.size());
 			PushTaskModel model = new PushTaskModel((Hermes2PushHandler) handler);
 			model.insert(bean);
-			
+
 			String message = data.getString(F.MESSAGE);
 			String messageId;
-			if(data.variableExists(F.MESSAGE_ID)){
+			if (data.variableExists(F.MESSAGE_ID)) {
 				messageId = data.getString(F.MESSAGE_ID, "1");
-			}else{
-				messageId=counter.incrementAndGet()+"";
-				if(counter.get()>20000){
+			} else {
+				messageId = counter.incrementAndGet() + "";
+				if (counter.get() > 20000) {
 					counter.set(0);
 				}
 			}
-			
 
-			this.executor = Executors.newCachedThreadPool(
-					new ThreadFactoryBuilder().setNameFormat("Hermes2PushNotification " + " #%d").build());
-			targetDevicesByService.entrySet().parallelStream().forEach(entry -> {
+			if (this.executor == null) {
+				this.executor = Executors.newCachedThreadPool(
+						new ThreadFactoryBuilder().setNameFormat("Hermes2PushProcessor " + " #%d").build());
+			}
+			// targetDevicesByService.entrySet().parallelStream().forEach(entry
+			// -> {
+			//
+			// });
+			targetDevicesByService.entrySet().forEach(entry -> {
 				Hermes2PushNotificationService service = pushHandler.getPushService(entry.getKey());
 				if (service != null) {
 					this.executor.execute(new Runnable() {
@@ -119,11 +127,12 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 									data.getString(F.TITLE, null), messageId), bean, model);
 						}
 					});
-
 				} else {
 					bean.getThreadCount().decrementAndGet();
+//					bean.getTotalFailureCount().addAndGet(entry.getValue().size());
 					getLogger().warn("Unable to get notification service for authenticator id " + entry.getKey());
 				}
+
 			});
 
 			PuObject result = PuObject.fromObject(new MapTuple<>(F.STATUS, 0, F.TARGETS, countByService));

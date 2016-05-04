@@ -21,7 +21,8 @@
 	</target>
 
 	<target name="clean">
-		<delete dir="${dist}" />
+		<delete dir="${dist}">
+		</delete>
 	</target>
 
 	<target name="jar" depends="clean">
@@ -61,8 +62,8 @@
 
 	<target name="deploy">
 		<delete dir="${deploy.path}/${ant.project.name}" />
-		<copy todir="${deploy.path}">
-			<fileset dir="${dist.ext}" />
+		<copy todir="${deploy.path}/${ant.project.name}">
+			<fileset dir="${dist.ext}/${ant.project.name}" />
 		</copy>
 		<copy todir="${deploy.path}/__lib__">
 			<fileset dir="lib">

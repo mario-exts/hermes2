@@ -1,10 +1,20 @@
 package com.gaia.hermes2.test;
 
 
+import static com.google.android.gcm.server.Constants.GCM_SEND_ENDPOINT;
+
 import java.io.IOException;
 import java.lang.reflect.Array;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.RequestBuilder;
 
 import com.google.android.gcm.server.AsyncSender;
 import com.google.android.gcm.server.Message;
@@ -15,53 +25,46 @@ import com.google.android.gcm.server.Result;
 import com.google.android.gcm.server.Sender;
 import com.nhb.common.async.Callback;
 import com.nhb.common.data.PuObject;
+import com.nhb.messaging.http.HttpAsyncFuture;
+import com.nhb.messaging.http.HttpClientHelper;
+import com.nhb.messaging.http.HttpUtil;
 
 public class TestAsyncPost {
 	public static void main(String[] args){
-		AsyncSender client=new AsyncSender("AIzaSyDRMEo9WE7N_ZLEUHWwqBmJX6lLzTZL_nA");
-		Sender sender=new Sender("AIzaSyDRMEo9WE7N_ZLEUHWwqBmJX6lLzTZL_nA");
+		TestAsyncPost app=new TestAsyncPost();
+		app.register();
 		
-		Callback<Result> callback=new Callback<Result>() {
+	}
+	
+	public void register(){
+		PuObject puo=new PuObject();
+		puo.set("command", "registerToken");
+		puo.set("appId", "4ec298c7-7b93-4d0a-b5c1-68ccea2307dc");
+		puo.set("authenticatorId", "d51a8708-4c15-471d-9781-0d39a57ac575");
+		puo.set("serviceType", "gcm");
+		HttpClientHelper http = new HttpClientHelper();
+		for(int i=0;i<2;i++){
+			puo.set("token", UUID.randomUUID().toString());
+			System.out.println("register: "+puo.get("token"));
+			
+			
+			http.setUsingMultipath(false);
+			RequestBuilder builder=null;
+				builder = RequestBuilder.post("http://localhost:8801/hermes2/register")
+						.addHeader("Content-Type", "multipart/form-data")
+						.setCharset(Charset.forName("utf8"));
+			
+			HttpAsyncFuture future=http.executeAsync(builder, puo);
+			future.setCallback(new Callback<HttpResponse>() {
 
-			@Override
-			public void apply(Result result) {
-				// TODO Auto-generated method stub
-				System.out.println("result 1:  "+result.toString());
-			}
-		};
-		
-		Callback<MulticastResult> callback2=new Callback<MulticastResult>() {
-
-			@Override
-			public void apply(MulticastResult result) {
-				// TODO Auto-generated method stub
-				System.out.println(result.toString());
-			}
-		};
-		
-		Message.Builder builder=new Message.Builder();
-		Notification.Builder b=new Notification.Builder("");
-		Notification notify=b.badge(1).body("hello").build();
-		Message msg=builder.notification(notify)
-			.addData("msg", "xin chao")
-			.priority(Priority.HIGH)
-			.build();
-		List<String> list=new ArrayList<>();
-		list.add("123");
-		list.add("1234444");
-		try {
-			client.send(msg,list,5, callback2);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+				@Override
+				public void apply(HttpResponse result) {
+					
+					
+				}
+				
+			});
 		}
-//		try {
-//			Result re=sender.send(msg, "123",5);
-//			System.out.println("re: "+re.toString());
-//		} catch (IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
 		
 	}
 }

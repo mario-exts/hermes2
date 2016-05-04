@@ -44,6 +44,7 @@ public class F extends Fields {
 	public static final String APNS_SUCCESS_COUNT = "apnsSuccessCount";
 	public static final String GCM_FAILURE_COUNT = "gcmFailureCount";
 	public static final String APNS_FAILURE_COUNT = "apnsFailureCount";
+	public static final String TOTAL_FAILURE_COUNT = "totalFailureCount";
 	public static final String START_TIME = "startTime";
 	public static final String LAST_MODIFY = "lastModify";
 	public static final String IS_DONE = "isDone";

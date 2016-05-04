@@ -33,12 +33,14 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 	private PuObjectRO clientConfig;
 	private PuObjectRO applicationConfig;
 	private AsyncSender asyncClient;
+
 	@Override
 	public void init(PuObjectRO properties) {
-//		getLogger().debug("initializing {} with properties: {}", Hermes2GCMService.class.getName(), properties);
+		// getLogger().debug("initializing {} with properties: {}",
+		// Hermes2GCMService.class.getName(), properties);
 		this.clientConfig = properties.getPuObject(F.CLIENT_CONFIG, new PuObject());
 		this.applicationConfig = properties.getPuObject(F.APPLICATION_CONFIG, new PuObject());
-		this.asyncClient=new AsyncSender(applicationConfig.getString(F.AUTHENTICATOR));
+		this.asyncClient = new AsyncSender(applicationConfig.getString(F.AUTHENTICATOR));
 		this.executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
 				.setNameFormat("Hermes2GCM " + applicationConfig.getString(F.ID) + " #%d").build());
 	}
@@ -47,35 +49,37 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 	public void close() throws IOException {
 		// do nothing
 	}
-	
-	private void asyncSend(Message message, List<String> recipients,PushTaskBean bean,PushTaskModel model) throws IOException {
+
+	private void asyncSend(Message message, List<String> recipients, PushTaskBean bean, PushTaskModel model)
+			throws IOException {
 		getLogger().debug("sending message {} to {} recipients", message, recipients.size());
-		Callback<MulticastResult> callback=new Callback<MulticastResult>() {
+		Callback<MulticastResult> callback = new Callback<MulticastResult>() {
 
 			@Override
 			public void apply(MulticastResult result) {
-				getLogger().debug("success: " + result.getSuccess() + ", failure: " + result.getFailure()+"  thread: "+bean.getThreadCount().get());
+
+				getLogger().debug("success: " + result.getSuccess() + ", failure: " + result.getFailure() + "  thread: "
+						+ bean.getThreadCount().get());
 				bean.getGcmSuccessCount().addAndGet(result.getSuccess());
 				bean.getGcmFailureCount().addAndGet(result.getFailure());
 				bean.autoLastModify();
 				model.updateGcmPushCount(bean);
-				if(bean.getThreadCount().decrementAndGet() < 1){					
+				if (bean.getThreadCount().decrementAndGet() < 1) {
 					bean.setDone(true);
+//					bean.getTotalFailureCount()
+//							.addAndGet(bean.getApnsFailureCount().get() + bean.getGcmFailureCount().get());
 					model.doneTask(bean);
-					getLogger().debug("done task.....................");
+					getLogger().debug("done task..................... ");
 				}
 			}
 		};
-		
-		this.asyncClient.send(message, recipients,
-				this.clientConfig.getInteger(RETRIES, DEFAULT_RETRIES)
-				,callback);
-		
+
+		this.asyncClient.send(message, recipients, this.clientConfig.getInteger(RETRIES, DEFAULT_RETRIES), callback);
+
 	}
-	
 
 	@Override
-	public void push(Hermes2Notification notification,PushTaskBean taskBean,PushTaskModel model) {
+	public void push(Hermes2Notification notification, PushTaskBean taskBean, PushTaskModel model) {
 		List<List<String>> batchs = new ArrayList<>();
 
 		int partitionCount = notification.getRecipients().size() / this.clientConfig.getInteger(BATCH_CHUNK_SIZE);
@@ -94,13 +98,13 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 		if (title != null) {
 			messageBuilder.addData(F.TITLE, title);
 		}
-		String messgeId=notification.getMessageId();
-		if(messgeId!=null){
+		String messgeId = notification.getMessageId();
+		if (messgeId != null) {
 			messageBuilder.addData(F.MESSAGE_ID, messgeId);
 		}
-		
+
 		final Message message = messageBuilder.build();
-		if(batchs.size()==0){
+		if (batchs.size() == 0) {
 			taskBean.getThreadCount().decrementAndGet();
 		}
 		for (List<String> recipients : batchs) {
@@ -109,7 +113,7 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 				@Override
 				public void run() {
 					try {
-						Hermes2GCMService.this.asyncSend(message, recipients,taskBean,model);
+						Hermes2GCMService.this.asyncSend(message, recipients, taskBean, model);
 					} catch (IOException e) {
 						taskBean.getThreadCount().decrementAndGet();
 						getLogger().error("Unable to send message: ", e);

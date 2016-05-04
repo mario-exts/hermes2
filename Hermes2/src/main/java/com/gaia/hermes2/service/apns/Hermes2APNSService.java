@@ -108,7 +108,9 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 			try {
 				clients.add(this.apnsClientPool.borrowObject());
 			} catch (Exception e) {
-				break;
+				e.printStackTrace();
+//				bean.getTotalFailureCount().addAndGet(numClients);
+//				break;
 			}
 		}
 
@@ -150,8 +152,8 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 						bean.getApnsFailureCount().addAndGet(failureCount);
 						bean.autoLastModify();
 						model.updateApnsPushCount(bean);
-						int i=bean.getThreadCount().decrementAndGet();
-						getLogger().debug("thread 1 : "+i);
+//						int i=bean.getThreadCount().decrementAndGet();
+//						getLogger().debug("thread 1 : "+i);
 					} catch (InterruptedException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -173,6 +175,8 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 			getLogger().debug("thread: "+i);
 			if(i<=0){
 				bean.setDone(true);
+//				bean.getTotalFailureCount()
+//				.addAndGet(bean.getApnsFailureCount().get() + bean.getGcmFailureCount().get());
 				model.doneTask(bean);
 				getLogger().debug("done task.....................");
 			}

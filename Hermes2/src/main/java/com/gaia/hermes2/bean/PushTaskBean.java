@@ -23,6 +23,7 @@ public class PushTaskBean extends AbstractMongoBean {
 	private AtomicInteger apnsSuccessCount;
 	private AtomicInteger gcmFailureCount;
 	private AtomicInteger apnsFailureCount;
+//	private AtomicInteger totalFailureCount;
 	private long startTime;
 	private long lastModify;
 	private boolean isDone;
@@ -35,6 +36,7 @@ public class PushTaskBean extends AbstractMongoBean {
 		apnsSuccessCount = new AtomicInteger(0);
 		apnsFailureCount = new AtomicInteger(0);
 		threadCount =new AtomicInteger(0);
+//		totalFailureCount=new AtomicInteger(0);
 	}
 
 	@Override
@@ -50,6 +52,7 @@ public class PushTaskBean extends AbstractMongoBean {
 		doc.put(F.GCM_SUCCESS_COUNT, this.gcmSuccessCount.intValue());
 		doc.put(F.GCM_FAILURE_COUNT, this.gcmFailureCount.intValue());
 		doc.put(F.APNS_FAILURE_COUNT, this.apnsFailureCount.intValue());
+//		doc.put(F.TOTAL_FAILURE_COUNT, this.totalFailureCount.get());
 		doc.put(F.START_TIME, this.startTime);
 		doc.put(F.LAST_MODIFY, this.lastModify);
 		doc.put(F.IS_DONE, this.isDone);
@@ -68,6 +71,7 @@ public class PushTaskBean extends AbstractMongoBean {
 		bean.setGcmSuccessCount(new AtomicInteger(doc.getInteger(F.GCM_SUCCESS_COUNT, 0)));
 		bean.setApnsFailureCount(new AtomicInteger(doc.getInteger(F.APNS_FAILURE_COUNT, 0)));
 		bean.setGcmFailureCount(new AtomicInteger(doc.getInteger(F.GCM_FAILURE_COUNT, 0)));
+//		bean.setTotalFailureCount(new AtomicInteger(doc.getInteger(F.TOTAL_FAILURE_COUNT, 0)));
 		bean.setStartTime(doc.getLong(F.START_TIME));
 		bean.setLastModify(doc.getLong(F.LAST_MODIFY));
 		bean.setDone(doc.getBoolean(F.IS_DONE, false));
@@ -81,6 +85,7 @@ public class PushTaskBean extends AbstractMongoBean {
 		puo.set(F.APPLICATION_ID, this.appId);
 		// puo.set(F.SERVICE_TYPE, this.serviceType);
 		puo.set(F.TOTAL_COUNT, this.totalCount);
+//		puo.set(F.TOTAL_FAILURE_COUNT, this.totalFailureCount);
 		PuObject gcm=new PuObject();
 		gcm.set(F.GCM_COUNT, this.gcmCount);
 		gcm.set(F.GCM_SUCCESS_COUNT, this.gcmSuccessCount.get());
@@ -96,6 +101,14 @@ public class PushTaskBean extends AbstractMongoBean {
 		puo.set(F.IS_DONE, this.isDone);
 		return puo;
 	}
+
+//	public AtomicInteger getTotalFailureCount() {
+//		return totalFailureCount;
+//	}
+//
+//	public void setTotalFailureCount(AtomicInteger totalFailureCount) {
+//		this.totalFailureCount = totalFailureCount;
+//	}
 
 	public String getAppId() {
 		return appId;
