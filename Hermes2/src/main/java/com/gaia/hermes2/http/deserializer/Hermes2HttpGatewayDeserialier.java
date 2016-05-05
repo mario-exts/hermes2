@@ -1,6 +1,5 @@
 package com.gaia.hermes2.http.deserializer;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.util.Collection;
@@ -14,6 +13,7 @@ import org.apache.commons.io.IOUtils;
 
 import com.mario.entity.message.MessageRW;
 import com.mario.entity.message.transcoder.http.HttpMessageDeserializer;
+import com.mario.exception.InvalidDataFormatException;
 import com.nhb.common.data.PuObject;
 
 public class Hermes2HttpGatewayDeserialier extends HttpMessageDeserializer {
@@ -36,7 +36,7 @@ public class Hermes2HttpGatewayDeserialier extends HttpMessageDeserializer {
 			}
 			if (request.getMethod().equalsIgnoreCase("post")) {
 				if (request.getContentType().toLowerCase().contains("multipart/form-data")) {
-					getLogger().debug("Posted data in multipart format");
+					getLogger().debug("Posted data is in multipart format");
 					try {
 						Collection<Part> parts = request.getParts();
 						for (Part part : parts) {
@@ -48,19 +48,22 @@ public class Hermes2HttpGatewayDeserialier extends HttpMessageDeserializer {
 						}
 					} catch (Exception e) {
 						getLogger().error("Error while get data from request", e);
-						throw new RuntimeException("Error while get data from request: " + e.getMessage(), e);
+						throw new InvalidDataFormatException("Error while get data from request: " + e.getMessage(), e);
 					}
 				} else {
 					getLogger().debug("Posted data in raw format, trying to parse as json");
 					try (InputStream is = request.getInputStream(); StringWriter sw = new StringWriter()) {
 						IOUtils.copy(is, sw);
 						params.addAll(PuObject.fromJSON(sw.toString()));
-					} catch (IOException e) {
-						throw new RuntimeException(e);
+					} catch (Exception e) {
+						throw new InvalidDataFormatException("Unable to parse data as json", e);
 					}
 				}
 			}
 			message.setData(params);
+			getLogger().debug("----> parsed request: " + params);
+		} else {
+			throw new NullPointerException("Cannot parse null request");
 		}
 	}
 
