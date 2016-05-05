@@ -11,8 +11,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import com.gaia.hermes2.bean.PushTaskBean;
-import com.gaia.hermes2.model.PushTaskModel;
+import com.gaia.hermes2.model.PushTaskReporter;
 import com.gaia.hermes2.service.Hermes2AbstractPushNotificationService;
 import com.gaia.hermes2.service.Hermes2Notification;
 import com.gaia.hermes2.statics.F;
@@ -84,7 +83,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 	}
 
 	@Override
-	public void push(Hermes2Notification notification,PushTaskBean bean,PushTaskModel model) {
+	public void push(Hermes2Notification notification,PushTaskReporter taskReporter) {
 
 		final ApnsPayloadBuilder payloadBuilder = new ApnsPayloadBuilder();
 		payloadBuilder.setAlertBody(notification.getMessage());
@@ -109,7 +108,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 				clients.add(this.apnsClientPool.borrowObject());
 			} catch (Exception e) {
 				e.printStackTrace();
-//				bean.getTotalFailureCount().addAndGet(numClients);
+//				taskReporter.getTask().getTotalFailureCount().addAndGet(numClients);
 //				break;
 			}
 		}
@@ -148,11 +147,11 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 								failureCount++;
 							}
 						}
-						bean.getApnsSuccessCount().addAndGet(successCount);
-						bean.getApnsFailureCount().addAndGet(failureCount);
-						bean.autoLastModify();
-						model.updateApnsPushCount(bean);
-//						int i=bean.getThreadCount().decrementAndGet();
+						taskReporter.getTask().getApnsSuccessCount().addAndGet(successCount);
+						taskReporter.getTask().getApnsFailureCount().addAndGet(failureCount);
+						taskReporter.getTask().autoLastModify();
+						taskReporter.updateApns();
+//						int i=taskReporter.getTask().getThreadCount().decrementAndGet();
 //						getLogger().debug("thread 1 : "+i);
 					} catch (InterruptedException e) {
 						// TODO Auto-generated catch block
@@ -171,13 +170,13 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 		
 		try{
 			countDown.await();
-			int i=bean.getThreadCount().decrementAndGet();
+			int i=taskReporter.getTask().getThreadCount().decrementAndGet();
 			getLogger().debug("thread: "+i);
 			if(i<=0){
-				bean.setDone(true);
-//				bean.getTotalFailureCount()
-//				.addAndGet(bean.getApnsFailureCount().get() + bean.getGcmFailureCount().get());
-				model.doneTask(bean);
+				taskReporter.getTask().setDone(true);
+//				taskReporter.getTask().getTotalFailureCount()
+//				.addAndGet(taskReporter.getTask().getApnsFailureCount().get() + taskReporter.getTask().getGcmFailureCount().get());
+				taskReporter.doneTaske();
 				getLogger().debug("done task.....................");
 			}
 		}catch(InterruptedException e){

@@ -13,6 +13,7 @@ import org.bson.Document;
 import com.gaia.hermes2.Hermes2PushHandler;
 import com.gaia.hermes2.bean.PushTaskBean;
 import com.gaia.hermes2.model.PushTaskModel;
+import com.gaia.hermes2.model.PushTaskReporter;
 import com.gaia.hermes2.processor.Hermes2BaseProcessor;
 import com.gaia.hermes2.service.BaseHermes2Notification;
 import com.gaia.hermes2.service.Hermes2PushNotificationService;
@@ -78,9 +79,10 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 
 			}
 //			getLogger().debug("taskbean:  " + targetDevicesByService.size());
-			PushTaskBean bean = new PushTaskBean();
-			bean.setAppId(applicationId);
-			bean.autoStartTime();
+			PushTaskReporter taskReporter=new PushTaskReporter((Hermes2PushHandler)handler);
+			
+			taskReporter.getTask().setAppId(applicationId);
+			taskReporter.getTask().autoStartTime();
 			int gcmCount = 0;
 			int apnsCount = 0;
 			if (countByService.containsKey("gcm")) {
@@ -89,14 +91,13 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 			if (countByService.containsKey("apns")) {
 				apnsCount = countByService.get("apns");
 			}
-			bean.autoId();
-			bean.setTotalCount(gcmCount + apnsCount);
-			bean.setApnsCount(apnsCount);
-			bean.setGcmCount(gcmCount);
+			taskReporter.getTask().autoId();
+			taskReporter.getTask().setTotalCount(gcmCount + apnsCount);
+			taskReporter.getTask().setApnsCount(apnsCount);
+			taskReporter.getTask().setGcmCount(gcmCount);
 			// bean.setLastModify(bean.getStartTime());
-			bean.getThreadCount().addAndGet(targetDevicesByService.size());
-			PushTaskModel model = new PushTaskModel((Hermes2PushHandler) handler);
-			model.insert(bean);
+			taskReporter.getTask().getThreadCount().addAndGet(targetDevicesByService.size());
+			taskReporter.saveTask();
 
 			String message = data.getString(F.MESSAGE);
 			String messageId;
@@ -113,10 +114,7 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 				this.executor = Executors.newCachedThreadPool(
 						new ThreadFactoryBuilder().setNameFormat("Hermes2PushProcessor " + " #%d").build());
 			}
-			// targetDevicesByService.entrySet().parallelStream().forEach(entry
-			// -> {
-			//
-			// });
+
 			targetDevicesByService.entrySet().forEach(entry -> {
 				Hermes2PushNotificationService service = pushHandler.getPushService(entry.getKey());
 				if (service != null) {
@@ -124,11 +122,11 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 						@Override
 						public void run() {
 							service.push(new BaseHermes2Notification(entry.getValue(), message,
-									data.getString(F.TITLE, null), messageId), bean, model);
+									data.getString(F.TITLE, null), messageId), taskReporter);
 						}
 					});
 				} else {
-					bean.getThreadCount().decrementAndGet();
+					taskReporter.getTask().getThreadCount().decrementAndGet();
 //					bean.getTotalFailureCount().addAndGet(entry.getValue().size());
 					getLogger().warn("Unable to get notification service for authenticator id " + entry.getKey());
 				}
@@ -136,7 +134,7 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 			});
 
 			PuObject result = PuObject.fromObject(new MapTuple<>(F.STATUS, 0, F.TARGETS, countByService));
-			result.set(F.ID, bean.getId());
+			result.set(F.ID, taskReporter.getTask().getId());
 			return result;
 		}
 		return null;

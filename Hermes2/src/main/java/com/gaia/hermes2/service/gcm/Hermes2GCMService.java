@@ -3,12 +3,10 @@ package com.gaia.hermes2.service.gcm;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import com.gaia.hermes2.bean.PushTaskBean;
-import com.gaia.hermes2.model.PushTaskModel;
+import com.gaia.hermes2.model.PushTaskReporter;
 import com.gaia.hermes2.service.Hermes2AbstractPushNotificationService;
 import com.gaia.hermes2.service.Hermes2Notification;
 import com.gaia.hermes2.statics.F;
@@ -16,7 +14,6 @@ import com.google.android.gcm.server.AsyncSender;
 import com.google.android.gcm.server.Message;
 import com.google.android.gcm.server.Message.Builder;
 import com.google.android.gcm.server.MulticastResult;
-import com.google.android.gcm.server.Sender;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.nhb.common.async.Callback;
 import com.nhb.common.data.PuObject;
@@ -50,7 +47,7 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 		// do nothing
 	}
 
-	private void asyncSend(Message message, List<String> recipients, PushTaskBean bean, PushTaskModel model)
+	private void asyncSend(Message message, List<String> recipients, PushTaskReporter taskReporter)
 			throws IOException {
 		getLogger().debug("sending message {} to {} recipients", message, recipients.size());
 		Callback<MulticastResult> callback = new Callback<MulticastResult>() {
@@ -59,16 +56,16 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 			public void apply(MulticastResult result) {
 
 				getLogger().debug("success: " + result.getSuccess() + ", failure: " + result.getFailure() + "  thread: "
-						+ bean.getThreadCount().get());
-				bean.getGcmSuccessCount().addAndGet(result.getSuccess());
-				bean.getGcmFailureCount().addAndGet(result.getFailure());
-				bean.autoLastModify();
-				model.updateGcmPushCount(bean);
-				if (bean.getThreadCount().decrementAndGet() < 1) {
-					bean.setDone(true);
-//					bean.getTotalFailureCount()
-//							.addAndGet(bean.getApnsFailureCount().get() + bean.getGcmFailureCount().get());
-					model.doneTask(bean);
+						+ taskReporter.getTask().getThreadCount().get());
+				taskReporter.getTask().getGcmSuccessCount().addAndGet(result.getSuccess());
+				taskReporter.getTask().getGcmFailureCount().addAndGet(result.getFailure());
+				taskReporter.getTask().autoLastModify();
+				taskReporter.updateGcm();
+				if (taskReporter.getTask().getThreadCount().decrementAndGet() < 1) {
+					taskReporter.getTask().setDone(true);
+//					taskReporter.getTask().getTotalFailureCount()
+//							.addAndGet(taskReporter.getTask().getApnsFailureCount().get() + taskReporter.getTask().getGcmFailureCount().get());
+					taskReporter.doneTaske();
 					getLogger().debug("done task..................... ");
 				}
 			}
@@ -79,7 +76,7 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 	}
 
 	@Override
-	public void push(Hermes2Notification notification, PushTaskBean taskBean, PushTaskModel model) {
+	public void push(Hermes2Notification notification, PushTaskReporter taskReporter) {
 		List<List<String>> batchs = new ArrayList<>();
 
 		int partitionCount = notification.getRecipients().size() / this.clientConfig.getInteger(BATCH_CHUNK_SIZE);
@@ -105,7 +102,7 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 
 		final Message message = messageBuilder.build();
 		if (batchs.size() == 0) {
-			taskBean.getThreadCount().decrementAndGet();
+			taskReporter.getTask().getThreadCount().decrementAndGet();
 		}
 		for (List<String> recipients : batchs) {
 			this.executor.submit(new Runnable() {
@@ -113,9 +110,9 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 				@Override
 				public void run() {
 					try {
-						Hermes2GCMService.this.asyncSend(message, recipients, taskBean, model);
+						Hermes2GCMService.this.asyncSend(message, recipients, taskReporter);
 					} catch (IOException e) {
-						taskBean.getThreadCount().decrementAndGet();
+						taskReporter.getTask().getThreadCount().decrementAndGet();
 						getLogger().error("Unable to send message: ", e);
 					}
 				}
