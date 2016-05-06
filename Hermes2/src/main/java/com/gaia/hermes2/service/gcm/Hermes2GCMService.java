@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import com.gaia.hermes2.model.PushTaskReporter;
+import com.gaia.hermes2.model.impl.PushTaskReporter;
 import com.gaia.hermes2.service.Hermes2AbstractPushNotificationService;
 import com.gaia.hermes2.service.Hermes2Notification;
 import com.gaia.hermes2.statics.F;
@@ -60,12 +60,12 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 				taskReporter.getTask().getGcmSuccessCount().addAndGet(result.getSuccess());
 				taskReporter.getTask().getGcmFailureCount().addAndGet(result.getFailure());
 				taskReporter.getTask().autoLastModify();
-				taskReporter.updateGcm();
+				taskReporter.update();
 				if (taskReporter.getTask().getThreadCount().decrementAndGet() < 1) {
 					taskReporter.getTask().setDone(true);
 //					taskReporter.getTask().getTotalFailureCount()
 //							.addAndGet(taskReporter.getTask().getApnsFailureCount().get() + taskReporter.getTask().getGcmFailureCount().get());
-					taskReporter.doneTaske();
+					taskReporter.update();
 					getLogger().debug("done task..................... ");
 				}
 			}

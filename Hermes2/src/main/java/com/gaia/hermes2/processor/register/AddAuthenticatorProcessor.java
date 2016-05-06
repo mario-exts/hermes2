@@ -2,16 +2,12 @@ package com.gaia.hermes2.processor.register;
 
 import java.util.UUID;
 
-import org.bson.Document;
-
 import com.gaia.hermes2.Hermes2RegisterHandler;
+import com.gaia.hermes2.bean.ServiceAuthenticatorBean;
+import com.gaia.hermes2.model.ServiceAuthenticatorModel;
 import com.gaia.hermes2.processor.Hermes2BaseProcessor;
 import com.gaia.hermes2.statics.F;
 import com.mario.entity.MessageHandler;
-import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
-import com.mongodb.client.MongoDatabase;
 import com.nhb.common.data.MapTuple;
 import com.nhb.common.data.PuElement;
 import com.nhb.common.data.PuObject;
@@ -24,8 +20,8 @@ public class AddAuthenticatorProcessor extends Hermes2BaseProcessor {
 	protected PuElement process(MessageHandler handler, PuObjectRO data) {
 		if (handler instanceof Hermes2RegisterHandler) {
 			Hermes2RegisterHandler registerHandler = (Hermes2RegisterHandler) handler;
-			MongoDatabase database = registerHandler.getDatabase();
-			MongoCollection<Document> collection = database.getCollection(F.DATABASE_SERVICE_AUTHENTICATOR);
+			ServiceAuthenticatorModel serviceModel = registerHandler.getModelFactory()
+					.getModel(ServiceAuthenticatorModel.class.toString());
 
 			String applicationId = data.getString(F.APPLICATION_ID);
 			String serviceType = data.getString(F.SERVICE_TYPE);
@@ -35,30 +31,23 @@ public class AddAuthenticatorProcessor extends Hermes2BaseProcessor {
 			String topic = data.getString(F.TOPIC, null);
 
 			String checksum = SHAEncryptor.sha512Hex(new String(authenticator) + String.valueOf(sandbox));
-
-			Document criteria = new Document();
-			criteria.append(F.APPLICATION_ID, applicationId);
-			criteria.append(F.CHECKSUM, checksum);
-			FindIterable<Document> finder = collection.find(criteria);
-			MongoCursor<Document> it = finder.iterator();
-			if (it.hasNext()) {
+			ServiceAuthenticatorBean bean = serviceModel.findByAppIdAndChecksum(applicationId, checksum);
+			if (bean != null) {
 				return PuObject.fromObject(new MapTuple<>(F.STATUS, 1, F.DESCRIPTION, "Authenticator is existing",
-						F.AUTHENTICATOR_ID, it.next().get(F.ID)));
+						F.AUTHENTICATOR_ID, bean.getId()));
 			}
+			bean = new ServiceAuthenticatorBean();
+			bean.setId(UUID.randomUUID().toString());
+			bean.setAppId(applicationId);
+			bean.setServiceType(serviceType);
+			bean.setAuthenticator(authenticator);
+			bean.setPassword(password);
+			bean.setChecksum(checksum);
+			bean.setSandbox(sandbox);
+			bean.setTopic(topic);
 
-			Document document = new Document();
-			document.append(F.ID, UUID.randomUUID().toString());
-			document.append(F.APPLICATION_ID, applicationId);
-			document.append(F.SERVICE_TYPE, serviceType);
-			document.append(F.AUTHENTICATOR, authenticator);
-			document.append(F.PASSWORD, password);
-			document.append(F.CHECKSUM, checksum);
-			document.append(F.SANDBOX, sandbox);
-			document.append(F.TOPIC, topic);
-
-			collection.insertOne(document);
-
-			return PuObject.fromObject(new MapTuple<>(F.STATUS, 0, F.AUTHENTICATOR_ID, document.get(F.ID)));
+			serviceModel.insert(bean);
+			return PuObject.fromObject(new MapTuple<>(F.STATUS, 0, F.AUTHENTICATOR_ID, bean.getId()));
 		}
 		return null;
 	}

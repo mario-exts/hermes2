@@ -10,7 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import com.gaia.hermes2.model.PushTaskReporter;
+import com.gaia.hermes2.model.impl.PushTaskReporter;
 import com.gaia.hermes2.service.Hermes2AbstractPushNotificationService;
 import com.gaia.hermes2.service.Hermes2Notification;
 import com.gaia.hermes2.statics.F;
@@ -149,7 +149,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 						taskReporter.getTask().getApnsSuccessCount().addAndGet(successCount);
 						taskReporter.getTask().getApnsFailureCount().addAndGet(failureCount);
 						taskReporter.getTask().autoLastModify();
-						taskReporter.updateApns();
+						taskReporter.update();
 //						int i=taskReporter.getTask().getThreadCount().decrementAndGet();
 //						getLogger().debug("thread 1 : "+i);
 					} catch (InterruptedException e) {
@@ -175,7 +175,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 				taskReporter.getTask().setDone(true);
 //				taskReporter.getTask().getTotalFailureCount()
 //				.addAndGet(taskReporter.getTask().getApnsFailureCount().get() + taskReporter.getTask().getGcmFailureCount().get());
-				taskReporter.doneTaske();
+				taskReporter.update();
 				getLogger().debug("done task.....................");
 			}
 		}catch(InterruptedException e){

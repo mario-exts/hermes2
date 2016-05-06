@@ -103,7 +103,9 @@
 				<gateway>hermes2_http_push_gateway</gateway>
 			</bind>
 			<variables>
+				<variable name="databaseName" type="String">hermes2</variable>
 				<variable name="mongodb" type="String">hermes2_mongodb</variable>
+				<variable name="modelMappingFile" type="string">conf/model_mappings.properties</variable>
 				<variable name="serviceConfigFile" type="String">conf/services.properties</variable>
 				<variable name="commands" type="puobject">
 					<variable name="push" type="String">com.gaia.hermes2.processor.push.PushNotificationProcessor</variable>
