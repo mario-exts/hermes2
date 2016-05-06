@@ -21,8 +21,8 @@ import static com.google.android.gcm.server.Constants.JSON_ERROR;
 import static com.google.android.gcm.server.Constants.JSON_FAILURE;
 import static com.google.android.gcm.server.Constants.JSON_MESSAGE_ID;
 import static com.google.android.gcm.server.Constants.JSON_MULTICAST_ID;
-import static com.google.android.gcm.server.Constants.JSON_NOTIFICATION_BADGE;
 import static com.google.android.gcm.server.Constants.JSON_NOTIFICATION;
+import static com.google.android.gcm.server.Constants.JSON_NOTIFICATION_BADGE;
 import static com.google.android.gcm.server.Constants.JSON_NOTIFICATION_BODY;
 import static com.google.android.gcm.server.Constants.JSON_NOTIFICATION_BODY_LOC_ARGS;
 import static com.google.android.gcm.server.Constants.JSON_NOTIFICATION_BODY_LOC_KEY;
@@ -36,28 +36,18 @@ import static com.google.android.gcm.server.Constants.JSON_NOTIFICATION_TITLE_LO
 import static com.google.android.gcm.server.Constants.JSON_NOTIFICATION_TITLE_LOC_KEY;
 import static com.google.android.gcm.server.Constants.JSON_PAYLOAD;
 import static com.google.android.gcm.server.Constants.JSON_REGISTRATION_IDS;
-import static com.google.android.gcm.server.Constants.JSON_TO;
 import static com.google.android.gcm.server.Constants.JSON_RESULTS;
 import static com.google.android.gcm.server.Constants.JSON_SUCCESS;
+import static com.google.android.gcm.server.Constants.JSON_TO;
 import static com.google.android.gcm.server.Constants.PARAM_COLLAPSE_KEY;
+import static com.google.android.gcm.server.Constants.PARAM_CONTENT_AVAILABLE;
 import static com.google.android.gcm.server.Constants.PARAM_DELAY_WHILE_IDLE;
 import static com.google.android.gcm.server.Constants.PARAM_DRY_RUN;
 import static com.google.android.gcm.server.Constants.PARAM_PRIORITY;
-import static com.google.android.gcm.server.Constants.PARAM_CONTENT_AVAILABLE;
 import static com.google.android.gcm.server.Constants.PARAM_RESTRICTED_PACKAGE_NAME;
 import static com.google.android.gcm.server.Constants.PARAM_TIME_TO_LIVE;
 import static com.google.android.gcm.server.Constants.TOKEN_CANONICAL_REG_ID;
 import static com.google.android.gcm.server.Constants.TOPIC_PREFIX;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.methods.RequestBuilder;
-import org.eclipse.jetty.security.RunAsToken;
-
-import com.nhb.common.async.Callback;
-import com.nhb.common.data.PuArray;
-import com.nhb.common.data.PuElement;
-import com.nhb.common.data.PuObject;
-import com.nhb.messaging.http.HttpAsyncFuture;
-import com.nhb.messaging.http.HttpClientHelper;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -71,6 +61,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.RequestBuilder;
+
+import com.nhb.common.async.Callback;
+import com.nhb.common.data.PuArray;
+import com.nhb.common.data.PuElement;
+import com.nhb.common.data.PuObject;
+import com.nhb.messaging.http.HttpAsyncFuture;
+import com.nhb.messaging.http.HttpClientHelper;
 
 /**
  * Helper class to send messages to the GCM service using an API Key.
@@ -103,7 +103,7 @@ public class AsyncSender {
 	 */
 	public AsyncSender(String key) {
 		this.key = nonNull(key);
-		this.callbackExecutor=Executors.newCachedThreadPool();
+		this.callbackExecutor = Executors.newCachedThreadPool();
 	}
 
 	/**
@@ -131,48 +131,49 @@ public class AsyncSender {
 	 * @throws IOException
 	 *             if message could not be sent.
 	 */
-	public void send(Message message, String to, int retries,Callback<Result> callback) throws IOException {
+	public void send(Message message, String to, int retries, Callback<Result> callback) throws IOException {
 		int attempt = 0;
 		int backoff = BACKOFF_INITIAL_DELAY;
-		AtomicInteger counter=new AtomicInteger(0);
-		
-		Callback<Result> sendCallBack=new Callback<Result>() {
+		AtomicInteger counter = new AtomicInteger(0);
+
+		Callback<Result> sendCallBack = new Callback<Result>() {
 
 			@Override
 			public void apply(Result result) {
-				Callback<Result> thisCallback=this;
+				Callback<Result> thisCallback = this;
 				callbackExecutor.execute(new Runnable() {
-					
+
 					@Override
 					public void run() {
-						if(null ==  result){
-							if(counter.incrementAndGet() <= retries){
+						if (null == result) {
+							if (counter.incrementAndGet() <= retries) {
 								if (logger.isLoggable(Level.FINE)) {
-									logger.fine("Attempt #" + attempt + " to send message " + message + " to regIds " + to);
+									logger.fine(
+											"Attempt #" + attempt + " to send message " + message + " to regIds " + to);
 								}
 								try {
-									sendNoRetry(message, to,thisCallback);
+									sendNoRetry(message, to, thisCallback);
 								} catch (IOException e) {
 									// TODO Auto-generated catch block
 									e.printStackTrace();
 								}
 								int sleepTime = backoff / 2 + random.nextInt(backoff);
 								sleep(sleepTime);
-//								if (2 * backoff < MAX_BACKOFF_DELAY) {
-//									backoff *= 2;
-//								}
+								// if (2 * backoff < MAX_BACKOFF_DELAY) {
+								// backoff *= 2;
+								// }
 							}
-						}else{
+						} else {
 							callback.apply(result);
 						}
 					}
 				});
-				
+
 			}
-			
+
 		};
-		sendNoRetry(message, to,sendCallBack);
-		
+		sendNoRetry(message, to, sendCallBack);
+
 	}
 
 	/**
@@ -188,12 +189,12 @@ public class AsyncSender {
 	 * @throws IllegalArgumentException
 	 *             if to is {@literal null}.
 	 */
-	public void sendNoRetry(Message message, String to,Callback<Result> callback) throws IOException {
+	public void sendNoRetry(Message message, String to, Callback<Result> callback) throws IOException {
 		nonNull(to);
 		PuObject jsonRequest = new PuObject();
 		messageToPuObject(message, jsonRequest);
 		jsonRequest.set(JSON_TO, to);
-		Callback<PuObject> postCallback=new Callback<PuObject>() {
+		Callback<PuObject> postCallback = new Callback<PuObject>() {
 
 			@Override
 			public void apply(PuObject data) {
@@ -202,34 +203,35 @@ public class AsyncSender {
 					@Override
 					public void run() {
 						Result.Builder resultBuilder = new Result.Builder();
-						
-						if(data.variableExists("results")){
-							PuArray arr=data.getPuArray("results");
-							if(arr.size()>=1){
-								PuObject puo=arr.remove(0).getPuObject();
-								String messageId = puo.getString(JSON_MESSAGE_ID,"");
-								String canonicalRegId = puo.getString(TOKEN_CANONICAL_REG_ID,"");
-								String error = puo.getString(JSON_ERROR,"");
-								if(messageId.length()>0){
+
+						if (data.variableExists("results")) {
+							PuArray arr = data.getPuArray("results");
+							if (arr.size() >= 1) {
+								PuObject puo = arr.remove(0).getPuObject();
+								String messageId = puo.getString(JSON_MESSAGE_ID, "");
+								String canonicalRegId = puo.getString(TOKEN_CANONICAL_REG_ID, "");
+								String error = puo.getString(JSON_ERROR, "");
+								if (messageId.length() > 0) {
 									resultBuilder.messageId(messageId);
 								}
-								if(canonicalRegId.length()>0){
+								if (canonicalRegId.length() > 0) {
 									resultBuilder.canonicalRegistrationId(canonicalRegId);
 								}
-								if(error.length()>0){
+								if (error.length() > 0) {
 									resultBuilder.errorCode(error);
 								}
 								callback.apply(resultBuilder.build());
-							}else{
+							} else {
 								logger.log(Level.WARNING, "Found null or " + arr.size() + " results, expected one");
 								callback.apply(null);
 								return;
 							}
-						}else if (to.startsWith(TOPIC_PREFIX)) {
+						} else if (to.startsWith(TOPIC_PREFIX)) {
 							if (data.variableExists(JSON_MESSAGE_ID)) {
-								// message_id is expected when this is the response from a
+								// message_id is expected when this is the
+								// response from a
 								// topic message.
-								String messageId = data.getString(JSON_MESSAGE_ID,"");
+								String messageId = data.getString(JSON_MESSAGE_ID, "");
 								resultBuilder.messageId(messageId);
 								callback.apply(resultBuilder.build());
 							} else if (data.variableExists(JSON_ERROR)) {
@@ -237,13 +239,14 @@ public class AsyncSender {
 								resultBuilder.errorCode(error);
 								callback.apply(resultBuilder.build());
 							} else {
-								logger.log(Level.WARNING,
-										"Expected " + JSON_MESSAGE_ID + " or " + JSON_ERROR + " found: " + data.toJSON());
+								logger.log(Level.WARNING, "Expected " + JSON_MESSAGE_ID + " or " + JSON_ERROR
+										+ " found: " + data.toJSON());
 								callback.apply(null);
 								return;
 							}
 						} else if (data.variableExists(JSON_SUCCESS) && data.variableExists(JSON_FAILURE)) {
-							// success and failure are expected when response is from group
+							// success and failure are expected when response is
+							// from group
 							// message.
 							int success = data.getInteger(JSON_SUCCESS);
 							int failure = data.getInteger(JSON_FAILURE);
@@ -251,22 +254,22 @@ public class AsyncSender {
 							if (data.variableExists("failed_registration_ids")) {
 								PuArray jFailedIds = data.getPuArray("failed_registration_ids");
 								failedIds = new ArrayList<String>();
-								while (jFailedIds.size()>0) {
+								while (jFailedIds.size() > 0) {
 									failedIds.add(jFailedIds.remove(0).getString());
-									
+
 								}
 							}
 							resultBuilder.success(success).failure(failure).failedRegistrationIds(failedIds);
 							callback.apply(resultBuilder.build());
 						} else {
 							logger.warning("Unrecognized response: " + data.toJSON());
-//							throw new IOException(data.toJSON());
+							// throw new IOException(data.toJSON());
 							callback.apply(null);
-							
+
 						}
 					}
 				});
-				
+
 			}
 		};
 		try {
@@ -301,56 +304,59 @@ public class AsyncSender {
 	 * @throws IOException
 	 *             if message could not be sent.
 	 */
-	public void send(Message message, List<String> regIds, int retries,Callback<MulticastResult> callback) throws IOException {
+	public void send(Message message, List<String> regIds, int retries, Callback<MulticastResult> callback)
+			throws IOException {
 		int backoff = BACKOFF_INITIAL_DELAY;
 		// Map of results by registration id, it will be updated after each
 		// attempt
 		// to send the messages
 		Map<String, Result> results = new HashMap<String, Result>();
-		AtomicInteger counter=new AtomicInteger(0);
-		
-		Callback<MulticastResult> sendCallBack=new Callback<MulticastResult>() {
+		AtomicInteger counter = new AtomicInteger(0);
+
+		Callback<MulticastResult> sendCallBack = new Callback<MulticastResult>() {
 
 			@Override
 			public void apply(MulticastResult multicastResult) {
-				Callback<MulticastResult> thisCallback=this;
+				Callback<MulticastResult> thisCallback = this;
 				callbackExecutor.execute(new Runnable() {
-					
+
 					@Override
 					public void run() {
-						boolean isRetry=false;
+						boolean isRetry = false;
 						List<String> unsentRegIds = new ArrayList<String>(regIds);
-						long multicastId=0;
+						long multicastId = 0;
 						List<Long> multicastIds = new ArrayList<Long>();
-						if(null ==  multicastResult){
-							if(counter.incrementAndGet() <= retries){
-								isRetry=true;
+						if (null == multicastResult) {
+							if (counter.incrementAndGet() <= retries) {
+								isRetry = true;
 							}
-						}else{
+						} else {
 							multicastId = multicastResult.getMulticastId();
 							logger.fine("multicast_id on attempt # " + counter.get() + ": " + multicastId);
 							multicastIds.add(multicastId);
 							unsentRegIds = updateStatus(unsentRegIds, results, multicastResult);
 							isRetry = !unsentRegIds.isEmpty() && counter.get() <= retries;
 						}
-						if(isRetry){
+						if (isRetry) {
 							if (logger.isLoggable(Level.FINE)) {
-								logger.fine("Attempt #" + counter.get() + " to send message " + message + " to regIds " + regIds.size());
+								logger.fine("Attempt #" + counter.get() + " to send message " + message + " to regIds "
+										+ regIds.size());
 							}
 							try {
-								sendNoRetry(message, regIds,thisCallback);
+								sendNoRetry(message, regIds, thisCallback);
 							} catch (IOException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
 							int sleepTime = backoff / 2 + random.nextInt(backoff);
 							sleep(sleepTime);
-//							if (2 * backoff < MAX_BACKOFF_DELAY) {
-//								backoff *= 2;
-//							}
-						}else{
+							// if (2 * backoff < MAX_BACKOFF_DELAY) {
+							// backoff *= 2;
+							// }
+						} else {
 							if (multicastIds.isEmpty()) {
-								// all JSON posts failed due to GCM unavailability
+								// all JSON posts failed due to GCM
+								// unavailability
 								callback.apply(null);
 							}
 							// calculate summary
@@ -367,8 +373,8 @@ public class AsyncSender {
 							}
 							// build a new object with the overall result
 							multicastId = multicastIds.remove(0);
-							MulticastResult.Builder builder = new MulticastResult.Builder(success, failure, canonicalIds, multicastId)
-									.retryMulticastIds(multicastIds);
+							MulticastResult.Builder builder = new MulticastResult.Builder(success, failure,
+									canonicalIds, multicastId).retryMulticastIds(multicastIds);
 							// add results, in the same order as the input
 							for (String regId : regIds) {
 								Result re = results.get(regId);
@@ -378,13 +384,12 @@ public class AsyncSender {
 						}
 					}
 				});
-				
-				
+
 			}
-			
+
 		};
-		sendNoRetry(message, regIds,sendCallBack);
-	
+		sendNoRetry(message, regIds, sendCallBack);
+
 	}
 
 	/**
@@ -432,56 +437,57 @@ public class AsyncSender {
 	 * @throws IOException
 	 *             if there was a JSON parsing error
 	 */
-	public void sendNoRetry(Message message, List<String> registrationIds,Callback<MulticastResult> sendCallback) throws IOException {
+	public void sendNoRetry(Message message, List<String> registrationIds, Callback<MulticastResult> sendCallback)
+			throws IOException {
 		if (nonNull(registrationIds).isEmpty()) {
 			throw new IllegalArgumentException("registrationIds cannot be empty");
 		}
 		PuObject jsonRequest = new PuObject();
 		messageToPuObject(message, jsonRequest);
 		jsonRequest.set(JSON_REGISTRATION_IDS, registrationIds);
-		Callback<PuObject> callback=new Callback<PuObject>() {
+		Callback<PuObject> callback = new Callback<PuObject>() {
 
 			@Override
 			public void apply(PuObject result) {
 				callbackExecutor.execute(new Runnable() {
-					
+
 					@Override
 					public void run() {
-						try{
+						try {
 							int success = result.getInteger(JSON_SUCCESS);
 							int failure = result.getInteger(JSON_FAILURE);
 							int canonicalIds = result.getInteger(JSON_CANONICAL_IDS);
 							long multicastId = result.getLong(JSON_MULTICAST_ID);
-							MulticastResult.Builder builder = new MulticastResult.Builder(success, failure, canonicalIds, multicastId);
+							MulticastResult.Builder builder = new MulticastResult.Builder(success, failure,
+									canonicalIds, multicastId);
 							PuArray results = result.getPuArray(JSON_RESULTS);
 							if (results != null) {
-								while(results.size()>0){
-									Result.Builder resultObj=new Result.Builder();
-									PuObject puo=results.remove(0).getPuObject();
-									String messageId = puo.getString(JSON_MESSAGE_ID,"");
-									String canonicalRegId = puo.getString(TOKEN_CANONICAL_REG_ID,"");
-									String error = puo.getString(JSON_ERROR,"");
-									if(messageId.length()>0){
+								while (results.size() > 0) {
+									Result.Builder resultObj = new Result.Builder();
+									PuObject puo = results.remove(0).getPuObject();
+									String messageId = puo.getString(JSON_MESSAGE_ID, "");
+									String canonicalRegId = puo.getString(TOKEN_CANONICAL_REG_ID, "");
+									String error = puo.getString(JSON_ERROR, "");
+									if (messageId.length() > 0) {
 										resultObj.messageId(messageId);
 									}
-									if(canonicalRegId.length()>0){
+									if (canonicalRegId.length() > 0) {
 										resultObj.canonicalRegistrationId(canonicalRegId);
 									}
-									if(error.length()>0){
+									if (error.length() > 0) {
 										resultObj.errorCode(error);
 									}
-									
+
 									builder.addResult(resultObj.build());
 								}
 							}
 							sendCallback.apply(builder.build());
-						}catch(Exception e){
+						} catch (Exception e) {
 							sendCallback.apply(null);
 						}
 					}
 				});
-				
-				
+
 			}
 		};
 		try {
@@ -490,7 +496,6 @@ public class AsyncSender {
 			e.printStackTrace();
 		}
 	}
-
 
 	/**
 	 * Populate Map with message.
@@ -535,6 +540,7 @@ public class AsyncSender {
 			request.set(JSON_NOTIFICATION, nMap);
 		}
 	}
+
 	/**
 	 * Sets a JSON field, but only if the value is not {@literal null}.
 	 */
@@ -547,50 +553,41 @@ public class AsyncSender {
 	/**
 	 * Makes an HTTP POST request to a given endpoint.
 	 *
-	 * <p>
-	 * <strong>Note: </strong> the returned connected should not be
+	 * <p> <strong>Note: </strong> the returned connected should not be
 	 * disconnected, otherwise it would kill persistent connections made using
 	 * Keep-Alive.
 	 *
-	 * @param url
-	 *            endpoint to post the request.
-	 * @param contentType
-	 *            type of request.
-	 * @param body
-	 *            body of the request.
+	 * @param url endpoint to post the request. @param contentType type of
+	 * request. @param body body of the request.
 	 *
 	 * @return the underlying connection.
 	 *
-	 * @throws IOException
-	 *             propagated from underlying methods.
-	 * @throws  
+	 * @throws IOException propagated from underlying methods. @throws
 	 */
-	public void post(String url, String contentType, String body,Callback<PuObject> callback) throws IOException {
+	public void post(String url, String contentType, String body, Callback<PuObject> callback) throws IOException {
 		if (url == null || contentType == null || body == null) {
 			throw new IllegalArgumentException("arguments cannot be null");
 		}
 		if (!url.startsWith("https://")) {
 			logger.warning("URL does not use https: " + url);
 		}
-		PuObject data=PuObject.fromJSON(body);
+		PuObject data = PuObject.fromJSON(body);
 		http = new HttpClientHelper();
 		http.setUsingMultipath(false);
-		RequestBuilder builder=null;
-			builder = RequestBuilder.post(GCM_SEND_ENDPOINT)
-					.addHeader("Content-Type", contentType)
-					.addHeader("Authorization", "key=" + key)
-					.setCharset(Charset.forName("utf8"));
-		
-		HttpAsyncFuture future=http.executeAsync(builder, data);	
+		RequestBuilder builder = null;
+		builder = RequestBuilder.post(GCM_SEND_ENDPOINT).addHeader("Content-Type", contentType)
+				.addHeader("Authorization", "key=" + key).setCharset(Charset.forName("utf8"));
+
+		HttpAsyncFuture future = http.executeAsync(builder, data);
 		future.setCallback(new Callback<HttpResponse>() {
 			@Override
 			public void apply(HttpResponse result) {
-				PuObject puo=new PuObject();
-				PuElement element=null;
-				try{
+				PuObject puo = new PuObject();
+				PuElement element = null;
+				try {
 					element = HttpClientHelper.handleResponse(result);
-					puo=(PuObject)element;
-				}catch(Exception e){
+					puo = (PuObject) element;
+				} catch (Exception e) {
 					puo.set("error", element.toString());
 				}
 				puo.set("status", result.getStatusLine());
@@ -599,7 +596,6 @@ public class AsyncSender {
 		});
 		return;
 	}
-
 
 	static <T> T nonNull(T argument) {
 		if (argument == null) {
