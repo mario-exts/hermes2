@@ -1,7 +1,6 @@
 package com.gaia.hermes2.model;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.bson.Document;
@@ -37,29 +36,8 @@ abstract public class HermesBaseModel extends AbstractModel {
 		return this.database;
 	}
 
-	public void initDatabase() {
-
-		createDatabaseIndexes(getDatabase().getCollection(DBF.DATABASE_SERVICE_AUTHENTICATOR),
-				new ArrayList<>(Arrays.asList(new Document().append(F.APPLICATION_ID, 1).append(F.CHECKSUM, 1))));
-
-		createDatabaseIndexes(getDatabase().getCollection(DBF.DATABASE_DEVICE_TOKEN),
-				new ArrayList<>(Arrays.asList(new Document().append(F.ID, 1), new Document().append(F.CHECKSUM, 1),
-						new Document().append(F.TOKEN, 1), new Document().append(F.APPLICATION_ID, 1),
-						new Document().append(F.APPLICATION_ID, 1).append(F.SERVICE_TYPE, 1),
-						new Document().append(F.APPLICATION_ID, 1).append(F.SERVICE_TYPE, 1).append(F.TOKEN, 1),
-						new Document().append(F.APPLICATION_ID, 1).append(F.TOKEN, 1),
-						new Document().append(F.SERVICE_TYPE, 1))));
-
-		createDatabaseIndexes(getDatabase().getCollection(DBF.DATABASE_DEVICE_TOKEN_SANDBOX),
-				new ArrayList<>(Arrays.asList(new Document().append(F.ID, 1), new Document().append(F.CHECKSUM, 1),
-						new Document().append(F.TOKEN, 1), new Document().append(F.APPLICATION_ID, 1),
-						new Document().append(F.APPLICATION_ID, 1).append(F.SERVICE_TYPE, 1),
-						new Document().append(F.APPLICATION_ID, 1).append(F.SERVICE_TYPE, 1).append(F.TOKEN, 1),
-						new Document().append(F.APPLICATION_ID, 1).append(F.TOKEN, 1),
-						new Document().append(F.SERVICE_TYPE, 1))));
-	}
-
-	private void createDatabaseIndexes(MongoCollection<Document> collection, List<Document> tobeIndexed) {
+	public void createDatabaseIndexes(String connectionName, List<Document> tobeIndexed) {
+		MongoCollection<Document> collection=getDatabase().getCollection(connectionName);
 		for (Document index : collection.listIndexes()) {
 			index = (Document) index.get(F.KEY);
 			List<Integer> markToRemove = new ArrayList<>();
