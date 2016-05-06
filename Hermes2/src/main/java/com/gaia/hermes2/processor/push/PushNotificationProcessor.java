@@ -11,8 +11,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.bson.Document;
 
 import com.gaia.hermes2.Hermes2PushHandler;
-import com.gaia.hermes2.bean.PushTaskBean;
-import com.gaia.hermes2.model.PushTaskModel;
 import com.gaia.hermes2.model.PushTaskReporter;
 import com.gaia.hermes2.processor.Hermes2BaseProcessor;
 import com.gaia.hermes2.service.BaseHermes2Notification;

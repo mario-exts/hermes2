@@ -10,22 +10,21 @@ import com.nhb.common.data.PuElement;
 import com.nhb.common.data.PuObject;
 import com.nhb.common.data.PuObjectRO;
 
-public class CheckPushStateProcessor extends Hermes2BaseProcessor{
+public class CheckPushStateProcessor extends Hermes2BaseProcessor {
 
 	@Override
 	protected PuElement process(MessageHandler handler, PuObjectRO data) {
 		if (handler instanceof Hermes2PushHandler) {
-			if(data.variableExists(F.ID)){
-				String taskId=data.getString(F.ID);
-				PushTaskModel model=new PushTaskModel((Hermes2PushHandler) handler);
-				PushTaskBean bean=model.findTaskById(taskId);
-				if(bean!=null){
+			if (data.variableExists(F.ID)) {
+				String taskId = data.getString(F.ID);
+				PushTaskModel model = new PushTaskModel((Hermes2PushHandler) handler);
+				PushTaskBean bean = model.findTaskById(taskId);
+				if (bean != null) {
 					return bean.toPuObject();
 				}
 			}
-			
 		}
-		PuObject puo=new PuObject();
+		PuObject puo = new PuObject();
 		puo.set("status", "Kiểm tra thất bại");
 		return puo;
 	}

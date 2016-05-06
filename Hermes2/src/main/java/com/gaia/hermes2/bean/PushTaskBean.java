@@ -1,7 +1,6 @@
 package com.gaia.hermes2.bean;
 
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bson.Document;
