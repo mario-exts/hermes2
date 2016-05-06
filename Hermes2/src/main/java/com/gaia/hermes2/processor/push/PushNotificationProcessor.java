@@ -3,25 +3,23 @@ package com.gaia.hermes2.processor.push;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.bson.Document;
-
 import com.gaia.hermes2.Hermes2PushHandler;
-import com.gaia.hermes2.model.PushTaskReporter;
+import com.gaia.hermes2.bean.DeviceTokenBean;
+import com.gaia.hermes2.model.DeviceTokenModel;
+import com.gaia.hermes2.model.PushTaskModel;
+import com.gaia.hermes2.model.impl.PushTaskReporter;
 import com.gaia.hermes2.processor.Hermes2BaseProcessor;
 import com.gaia.hermes2.service.BaseHermes2Notification;
 import com.gaia.hermes2.service.Hermes2PushNotificationService;
 import com.gaia.hermes2.statics.F;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mario.entity.MessageHandler;
-import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
-import com.mongodb.client.MongoDatabase;
 import com.nhb.common.data.MapTuple;
 import com.nhb.common.data.PuElement;
 import com.nhb.common.data.PuObject;
@@ -36,49 +34,47 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 	protected PuElement process(MessageHandler handler, PuObjectRO data) {
 		if (handler instanceof Hermes2PushHandler) {
 			Hermes2PushHandler pushHandler = (Hermes2PushHandler) handler;
-			MongoDatabase database = pushHandler.getDatabase();
-			MongoCollection<Document> collection = data.getBoolean(F.SANDBOX, false)
-					? database.getCollection(F.DATABASE_DEVICE_TOKEN_SANDBOX)
-					: database.getCollection(F.DATABASE_DEVICE_TOKEN);
-
-			String applicationId = data.getString(F.APPLICATION_ID);
-			Document criteria = new Document();
-			criteria.append(F.APPLICATION_ID, applicationId);
-			if (data.variableExists(F.SERVICE_TYPE)) {
-				criteria.append(F.SERVICE_TYPE, data.getString(F.SERVICE_TYPE));
+			DeviceTokenModel deviceModel = pushHandler.getModelFactory()
+						.getModel(DeviceTokenModel.class.toString());
+			if(data.variableExists(F.SANDBOX) && data.getBoolean(F.SANDBOX)){
+				deviceModel.setSandbox(true);
 			}
-			if (data.variableExists(F.TOKEN)) {
-				criteria.append(F.ID, data.getString(F.TOKEN));
-			}
-
-			FindIterable<Document> cursor = collection.find(criteria);
-			MongoCursor<Document> it = cursor.iterator();
+			List<DeviceTokenBean> beans=null;
 			
-//			for(Document doc:cursor){
-//				getLogger().debug("iterator:  " + doc.toJson());
-//			}
+			String applicationId = data.getString(F.APPLICATION_ID);
+			
+			if (data.variableExists(F.TOKEN)) {
+				String token= data.getString(F.TOKEN);
+				beans = deviceModel.findByToken(token);
+			}else{
+				if (data.variableExists(F.SERVICE_TYPE)) {
+					String serviceType=data.getString(F.SERVICE_TYPE);
+					beans=deviceModel.findByAppIdAndServiceType(applicationId, serviceType);
+				}else{
+					beans=deviceModel.findByAppId(applicationId);
+				}
+			}
+
 			Map<String, Collection<String>> targetDevicesByService = new HashMap<>();
-			// Map<String, PushTaskBean> tasks = new HashMap<>();
 
 			Map<String, Integer> countByService = new HashMap<>();
-			while (it.hasNext()) {
-				Document row = it.next();
-				String authenticatorId = row.getString(F.AUTHENTICATOR_ID);
+			for(DeviceTokenBean bean:beans) {
+				String authenticatorId = bean.getAuthenticatorId();
 				if (!targetDevicesByService.containsKey(authenticatorId)) {
 					targetDevicesByService.put(authenticatorId, new HashSet<>());
 				}
-				targetDevicesByService.get(authenticatorId).add(row.getString(F.TOKEN));
-				if (!countByService.containsKey(row.getString(F.SERVICE_TYPE))) {
-					countByService.put(row.getString(F.SERVICE_TYPE), 1);
+				targetDevicesByService.get(authenticatorId).add(bean.getToken());
+				if (!countByService.containsKey(bean.getServiceType())) {
+					countByService.put(bean.getServiceType(), 1);
 				} else {
-					countByService.put(row.getString(F.SERVICE_TYPE),
-							countByService.get(row.getString(F.SERVICE_TYPE)) + 1);
+					countByService.put(bean.getServiceType(),
+							countByService.get(bean.getServiceType()) + 1);
 				}
 
 			}
-//			getLogger().debug("taskbean:  " + targetDevicesByService.size());
-			PushTaskReporter taskReporter=new PushTaskReporter((Hermes2PushHandler)handler);
-			
+			PushTaskModel model = pushHandler.getModelFactory().getModel(PushTaskModel.class.toString());
+			PushTaskReporter taskReporter = new PushTaskReporter(model);
+
 			taskReporter.getTask().setAppId(applicationId);
 			taskReporter.getTask().autoStartTime();
 			int gcmCount = 0;
@@ -125,7 +121,7 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 					});
 				} else {
 					taskReporter.getTask().getThreadCount().decrementAndGet();
-//					bean.getTotalFailureCount().addAndGet(entry.getValue().size());
+					// bean.getTotalFailureCount().addAndGet(entry.getValue().size());
 					getLogger().warn("Unable to get notification service for authenticator id " + entry.getKey());
 				}
 

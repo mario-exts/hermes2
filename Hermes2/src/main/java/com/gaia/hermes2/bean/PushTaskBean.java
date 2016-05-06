@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bson.Document;
 
+import com.gaia.hermes2.statics.DBF;
 import com.gaia.hermes2.statics.F;
 import com.nhb.common.data.PuObject;
 import com.nhb.common.db.beans.AbstractMongoBean;
@@ -43,37 +44,37 @@ public class PushTaskBean extends AbstractMongoBean {
 		Document doc = new Document();
 		doc.put(F.APPLICATION_ID, this.appId);
 		// doc.put(F.SERVICE_TYPE, this.serviceType);
-		doc.put(F.ID, this.id);
-		doc.put(F.TOTAL_COUNT, this.totalCount);
-		doc.put(F.APNS_COUNT, this.apnsCount);
-		doc.put(F.GCM_COUNT, this.gcmCount);
-		doc.put(F.APNS_SUCCESS_COUNT, this.apnsSuccessCount.intValue());
-		doc.put(F.GCM_SUCCESS_COUNT, this.gcmSuccessCount.intValue());
-		doc.put(F.GCM_FAILURE_COUNT, this.gcmFailureCount.intValue());
-		doc.put(F.APNS_FAILURE_COUNT, this.apnsFailureCount.intValue());
+		doc.put(DBF.ID, this.id);
+		doc.put(DBF.TOTAL_COUNT, this.totalCount);
+		doc.put(DBF.APNS_COUNT, this.apnsCount);
+		doc.put(DBF.GCM_COUNT, this.gcmCount);
+		doc.put(DBF.APNS_SUCCESS_COUNT, this.apnsSuccessCount.intValue());
+		doc.put(DBF.GCM_SUCCESS_COUNT, this.gcmSuccessCount.intValue());
+		doc.put(DBF.GCM_FAILURE_COUNT, this.gcmFailureCount.intValue());
+		doc.put(DBF.APNS_FAILURE_COUNT, this.apnsFailureCount.intValue());
 //		doc.put(F.TOTAL_FAILURE_COUNT, this.totalFailureCount.get());
-		doc.put(F.START_TIME, this.startTime);
-		doc.put(F.LAST_MODIFY, this.lastModify);
-		doc.put(F.IS_DONE, this.isDone);
+		doc.put(DBF.START_TIME, this.startTime);
+		doc.put(DBF.LAST_MODIFY, this.lastModify);
+		doc.put(DBF.IS_DONE, this.isDone);
 		return doc;
 	}
 
 	public static PushTaskBean fromDocument(Document doc) {
 		PushTaskBean bean = new PushTaskBean();
-		bean.setAppId(doc.getString(F.APPLICATION_ID));
-		// bean.setServiceType(doc.getString(F.SERVICE_TYPE));
-		bean.setId(doc.getString(F.ID));
-		bean.setTotalCount(doc.getInteger(F.TOTAL_COUNT, 0));
-		bean.setGcmCount(doc.getInteger(F.GCM_COUNT, 0));
-		bean.setApnsCount(doc.getInteger(F.APNS_COUNT, 0));
-		bean.setApnsSuccessCount(new AtomicInteger(doc.getInteger(F.APNS_SUCCESS_COUNT, 0)));
-		bean.setGcmSuccessCount(new AtomicInteger(doc.getInteger(F.GCM_SUCCESS_COUNT, 0)));
-		bean.setApnsFailureCount(new AtomicInteger(doc.getInteger(F.APNS_FAILURE_COUNT, 0)));
-		bean.setGcmFailureCount(new AtomicInteger(doc.getInteger(F.GCM_FAILURE_COUNT, 0)));
-//		bean.setTotalFailureCount(new AtomicInteger(doc.getInteger(F.TOTAL_FAILURE_COUNT, 0)));
-		bean.setStartTime(doc.getLong(F.START_TIME));
-		bean.setLastModify(doc.getLong(F.LAST_MODIFY));
-		bean.setDone(doc.getBoolean(F.IS_DONE, false));
+		bean.setAppId(doc.getString(DBF.APPLICATION_ID));
+		// bean.setServiceType(doc.getString(DBF.SERVICE_TYPE));
+		bean.setId(doc.getString(DBF.ID));
+		bean.setTotalCount(doc.getInteger(DBF.TOTAL_COUNT, 0));
+		bean.setGcmCount(doc.getInteger(DBF.GCM_COUNT, 0));
+		bean.setApnsCount(doc.getInteger(DBF.APNS_COUNT, 0));
+		bean.setApnsSuccessCount(new AtomicInteger(doc.getInteger(DBF.APNS_SUCCESS_COUNT, 0)));
+		bean.setGcmSuccessCount(new AtomicInteger(doc.getInteger(DBF.GCM_SUCCESS_COUNT, 0)));
+		bean.setApnsFailureCount(new AtomicInteger(doc.getInteger(DBF.APNS_FAILURE_COUNT, 0)));
+		bean.setGcmFailureCount(new AtomicInteger(doc.getInteger(DBF.GCM_FAILURE_COUNT, 0)));
+//		bean.setTotalFailureCount(new AtomicInteger(doc.getInteger(DBF.TOTAL_FAILURE_COUNT, 0)));
+		bean.setStartTime(doc.getLong(DBF.START_TIME));
+		bean.setLastModify(doc.getLong(DBF.LAST_MODIFY));
+		bean.setDone(doc.getBoolean(DBF.IS_DONE, false));
 		return bean;
 	}
 

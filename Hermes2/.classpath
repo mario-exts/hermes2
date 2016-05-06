@@ -13,5 +13,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/SLF4J_API"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/NHBCommonMessaging"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/Mario"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Lombok"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

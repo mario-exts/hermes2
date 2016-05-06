@@ -17,8 +17,8 @@ public class CheckPushStateProcessor extends Hermes2BaseProcessor {
 		if (handler instanceof Hermes2PushHandler) {
 			if (data.variableExists(F.ID)) {
 				String taskId = data.getString(F.ID);
-				PushTaskModel model = new PushTaskModel((Hermes2PushHandler) handler);
-				PushTaskBean bean = model.findTaskById(taskId);
+				PushTaskModel model = ((Hermes2PushHandler) handler).getModelFactory().getModel(PushTaskModel.class.toString());
+				PushTaskBean bean = model.findByTaskId(taskId);
 				if (bean != null) {
 					return bean.toPuObject();
 				}
