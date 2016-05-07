@@ -3,6 +3,11 @@ package com.gaia.hermes2;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.Map.Entry;
+
+import org.bson.Document;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Properties;
 
 import com.gaia.hermes2.model.HermesBaseModel;
@@ -29,7 +34,7 @@ public class Hermes2RegisterHandler extends BaseMessageHandler {
 	private final CommandController controller = new CommandController();
 	private ModelFactory modelFactory;
 	private MongoClient mongoClient;
-	
+
 	@Override
 	public void init(PuObjectRO initParams) {
 		getLogger().debug("Initializing Hermes2Handler with params: " + initParams);
@@ -45,9 +50,8 @@ public class Hermes2RegisterHandler extends BaseMessageHandler {
 		initModelFactory(initParams.getString(F.MODEL_MAPPING_FILE, null), dbName);
 
 		this.initController(initParams.getPuObject(F.COMMANDS, new PuObject()));
-		
-		HermesBaseModel model=modelFactory.newModel(HermesBaseModel.class);
-		model.initDatabase();
+
+		initDatabase();
 	}
 
 	private void initModelFactory(String filePath, String databaseName) {
@@ -66,7 +70,6 @@ public class Hermes2RegisterHandler extends BaseMessageHandler {
 			}
 		}
 	}
-	
 
 	private void initController(PuObject commands) {
 		this.controller.setEnviroiment(F.HANDLER, this);
@@ -82,7 +85,6 @@ public class Hermes2RegisterHandler extends BaseMessageHandler {
 			}
 		}
 	}
-
 
 	@Override
 	public PuElement handle(Message message) {
@@ -132,5 +134,26 @@ public class Hermes2RegisterHandler extends BaseMessageHandler {
 	public void setModelFactory(ModelFactory modelFactory) {
 		this.modelFactory = modelFactory;
 	}
-	
+
+	public void initDatabase() {
+		HermesBaseModel model = modelFactory.newModel(HermesBaseModel.class);
+		model.createDatabaseIndexes(DBF.DATABASE_SERVICE_AUTHENTICATOR,
+				new ArrayList<>(Arrays.asList(new Document().append(F.APPLICATION_ID, 1).append(F.CHECKSUM, 1))));
+
+		model.createDatabaseIndexes(DBF.DATABASE_DEVICE_TOKEN,
+				new ArrayList<>(Arrays.asList(new Document().append(F.ID, 1), new Document().append(F.CHECKSUM, 1),
+						new Document().append(F.TOKEN, 1), new Document().append(F.APPLICATION_ID, 1),
+						new Document().append(F.APPLICATION_ID, 1).append(F.SERVICE_TYPE, 1),
+						new Document().append(F.APPLICATION_ID, 1).append(F.SERVICE_TYPE, 1).append(F.TOKEN, 1),
+						new Document().append(F.APPLICATION_ID, 1).append(F.TOKEN, 1),
+						new Document().append(F.SERVICE_TYPE, 1))));
+
+		model.createDatabaseIndexes(DBF.DATABASE_DEVICE_TOKEN_SANDBOX,
+				new ArrayList<>(Arrays.asList(new Document().append(F.ID, 1), new Document().append(F.CHECKSUM, 1),
+						new Document().append(F.TOKEN, 1), new Document().append(F.APPLICATION_ID, 1),
+						new Document().append(F.APPLICATION_ID, 1).append(F.SERVICE_TYPE, 1),
+						new Document().append(F.APPLICATION_ID, 1).append(F.SERVICE_TYPE, 1).append(F.TOKEN, 1),
+						new Document().append(F.APPLICATION_ID, 1).append(F.TOKEN, 1),
+						new Document().append(F.SERVICE_TYPE, 1))));
+	}
 }
