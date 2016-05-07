@@ -10,7 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import com.gaia.hermes2.model.impl.PushTaskReporter;
+import com.gaia.hermes2.processor.PushTaskReporter;
 import com.gaia.hermes2.service.Hermes2AbstractPushNotificationService;
 import com.gaia.hermes2.service.Hermes2Notification;
 import com.gaia.hermes2.statics.F;
@@ -106,7 +106,8 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 			try {
 				clients.add(this.apnsClientPool.borrowObject());
 			} catch (Exception e) {
-				e.printStackTrace();
+				getLogger().debug("apns error: "+e.getMessage());
+//				e.printStackTrace();
 //				taskReporter.getTask().getTotalFailureCount().addAndGet(numClients);
 //				break;
 			}
@@ -146,12 +147,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 								failureCount++;
 							}
 						}
-						taskReporter.getTask().getApnsSuccessCount().addAndGet(successCount);
-						taskReporter.getTask().getApnsFailureCount().addAndGet(failureCount);
-						taskReporter.getTask().autoLastModify();
-						taskReporter.update();
-//						int i=taskReporter.getTask().getThreadCount().decrementAndGet();
-//						getLogger().debug("thread 1 : "+i);
+						taskReporter.increaseApnsCount(successCount, failureCount);
 					} catch (InterruptedException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -169,13 +165,10 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 		
 		try{
 			countDown.await();
-			int i=taskReporter.getTask().getThreadCount().decrementAndGet();
+			int i=taskReporter.getThreadCount().decrementAndGet();
 			getLogger().debug("thread: "+i);
 			if(i<=0){
-				taskReporter.getTask().setDone(true);
-//				taskReporter.getTask().getTotalFailureCount()
-//				.addAndGet(taskReporter.getTask().getApnsFailureCount().get() + taskReporter.getTask().getGcmFailureCount().get());
-				taskReporter.update();
+				taskReporter.complete();
 				getLogger().debug("done task.....................");
 			}
 		}catch(InterruptedException e){

@@ -1,5 +1,11 @@
 package com.gaia.hermes2.processor;
 
+import com.gaia.hermes2.Hermes2PushHandler;
+import com.gaia.hermes2.Hermes2RegisterHandler;
+import com.gaia.hermes2.model.DeviceTokenModel;
+import com.gaia.hermes2.model.PushTaskModel;
+import com.gaia.hermes2.model.ServiceAuthenticatorModel;
+import com.gaia.hermes2.service.Hermes2PushNotificationService;
 import com.gaia.hermes2.statics.F;
 import com.mario.entity.MessageHandler;
 import com.mario.entity.message.Message;
@@ -12,16 +18,89 @@ import com.nhb.strategy.CommandRequestParameters;
 import com.nhb.strategy.CommandResponseData;
 
 public abstract class Hermes2BaseProcessor extends BaseLoggable implements CommandProcessor {
+	private DeviceTokenModel deviceTokenModel;
+	private PushTaskModel pushTaskModel;
+	private ServiceAuthenticatorModel authenticatorModel;
+	private MessageHandler handler;
 
 	@Override
 	public final CommandResponseData execute(CommandController context, CommandRequestParameters request) {
 		if (request instanceof Message) {
-			PuElement result = this.process(context.getEnvironment(F.HANDLER),
-					(PuObjectRO) ((Message) request).getData());
+			if (this.handler == null) {
+				this.handler = context.getEnvironment(F.HANDLER);
+			}
+			PuElement result = this.process((PuObjectRO) ((Message) request).getData());
 			return new Hermes2ProcessorResponseData(result);
 		}
+
 		return null;
 	}
 
-	protected abstract PuElement process(MessageHandler handler, PuObjectRO data);
+	// protected abstract PuElement process(MessageHandler handler, PuObjectRO
+	// data);
+	protected abstract PuElement process(PuObjectRO data);
+
+	protected Hermes2PushNotificationService getPushService(String authenticatorId){
+		if(this.handler instanceof Hermes2PushHandler){
+			return ((Hermes2PushHandler) handler).getPushService(authenticatorId);
+		}
+		return null;
+		
+	}
+	
+	
+	protected DeviceTokenModel getDeviceTokenModel() {
+		if (this.deviceTokenModel == null) {
+			synchronized (this) {
+				if (this.deviceTokenModel == null) {
+					if (this.handler instanceof Hermes2PushHandler) {
+						this.deviceTokenModel = ((Hermes2PushHandler) handler).getModelFactory()
+								.getModel(DeviceTokenModel.class.getName());
+					} else {
+						this.deviceTokenModel = ((Hermes2RegisterHandler) handler).getModelFactory()
+								.getModel(DeviceTokenModel.class.getName());
+					}
+				}
+			}
+		}
+		return this.deviceTokenModel;
+	}
+
+	public PushTaskModel getPushTaskModel() {
+		if (this.pushTaskModel == null) {
+			synchronized (this) {
+				if (this.pushTaskModel == null) {
+					this.pushTaskModel = ((Hermes2PushHandler) handler).getModelFactory()
+							.getModel(PushTaskModel.class.getName());
+				}
+			}
+		}
+		return this.pushTaskModel;
+	}
+
+	public ServiceAuthenticatorModel getAuthenticatorModel() {
+		if (this.authenticatorModel == null) {
+			synchronized (this) {
+				if (this.authenticatorModel == null) {
+					if (this.handler instanceof Hermes2PushHandler) {
+						this.authenticatorModel = ((Hermes2PushHandler) handler).getModelFactory()
+								.getModel(ServiceAuthenticatorModel.class.getName());
+					} else {
+						this.authenticatorModel = ((Hermes2RegisterHandler) handler).getModelFactory()
+								.getModel(ServiceAuthenticatorModel.class.getName());
+					}
+				}
+			}
+		}
+		return this.authenticatorModel;
+	}
+	
+	protected boolean isFromPushHandler(){
+		return this.handler instanceof Hermes2PushHandler ?true:false;
+	}
+	
+	protected boolean isFromRegisterHandler(){
+		return this.handler instanceof Hermes2RegisterHandler ?true:false;
+	}
+
 }

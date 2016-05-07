@@ -3,20 +3,19 @@ package com.gaia.hermes2.model.impl;
 import org.bson.Document;
 
 import com.gaia.hermes2.bean.ServiceAuthenticatorBean;
-import com.gaia.hermes2.model.HermesBaseModel;
 import com.gaia.hermes2.model.ServiceAuthenticatorModel;
 import com.gaia.hermes2.statics.DBF;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 
-public class ServiceAuthenticatorModelImpl extends HermesBaseModel implements ServiceAuthenticatorModel {
+public class ServiceAuthenticatorModelImpl extends HermesAbstractModel implements ServiceAuthenticatorModel {
 	private MongoCollection<Document> collection;
 
 	protected MongoCollection<Document> getCollection() {
 		if (this.collection == null) {
 			synchronized (this) {
 				if (this.collection == null) {
-					this.collection = this.getDatabase().getCollection(DBF.DATABASE_PUSH_TASK);
+					this.collection = this.getDatabase().getCollection(DBF.DATABASE_SERVICE_AUTHENTICATOR);
 				}
 			}
 		}

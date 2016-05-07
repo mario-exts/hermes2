@@ -7,12 +7,11 @@ import org.bson.Document;
 
 import com.gaia.hermes2.bean.DeviceTokenBean;
 import com.gaia.hermes2.model.DeviceTokenModel;
-import com.gaia.hermes2.model.HermesBaseModel;
 import com.gaia.hermes2.statics.DBF;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 
-public class DeviceTokenModelImpl extends HermesBaseModel implements DeviceTokenModel {
+public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceTokenModel {
 	private MongoCollection<Document> collection;
 	private boolean useSandbox = false;
 
@@ -95,7 +94,7 @@ public class DeviceTokenModelImpl extends HermesBaseModel implements DeviceToken
 	public DeviceTokenBean findByChecksum(String checksum) {
 		Document match = new Document(DBF.CHECKSUM, checksum);
 		FindIterable<Document> found = getCollection().find(match);
-		if (found == null || found.first() == null) {
+		if (found != null && found.first() != null) {
 			return DeviceTokenBean.fromDocument(found.first());
 		}
 		return null;
