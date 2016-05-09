@@ -4,14 +4,15 @@ import org.bson.Document;
 
 import com.gaia.hermes2.bean.PushTaskBean;
 import com.gaia.hermes2.model.HermesBaseModel;
+import com.gaia.hermes2.model.PushTaskModel;
 import com.gaia.hermes2.statics.DBF;
 import com.gaia.hermes2.statics.F;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.result.UpdateResult;
 
-public class PushTaskModelImpl extends HermesBaseModel implements com.gaia.hermes2.model.PushTaskModel {
-	
+public class PushTaskModelImpl extends HermesBaseModel implements PushTaskModel {
+
 	private MongoCollection<Document> collection;
 
 	protected MongoCollection<Document> getCollection() {
@@ -40,7 +41,6 @@ public class PushTaskModelImpl extends HermesBaseModel implements com.gaia.herme
 				new Document("$set", update));
 		return result.getModifiedCount() > 0 ? true : false;
 	}
-
 
 	@Override
 	public PushTaskBean findByTaskId(String id) {

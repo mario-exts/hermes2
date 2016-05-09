@@ -70,8 +70,8 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 					countByService.put(bean.getServiceType(),
 							countByService.get(bean.getServiceType()) + 1);
 				}
-
 			}
+			
 			PushTaskModel model = pushHandler.getModelFactory().getModel(PushTaskModel.class.toString());
 			PushTaskReporter taskReporter = new PushTaskReporter(model);
 
