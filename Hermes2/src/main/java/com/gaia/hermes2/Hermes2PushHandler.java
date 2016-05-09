@@ -49,7 +49,7 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 			throw new RuntimeException("MongoDB config cannot be found");
 		}
 
-		String dbName = initParams.getString(F.DATABASE_NAME, null);
+		String dbName = initParams.getString(F.DATABASE_NAME, DBF.MONGO_DATABASE_NAME);
 
 		initModelFactory(initParams.getString(F.MODEL_MAPPING_FILE, null), dbName);
 
@@ -72,7 +72,7 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 		modelFactory = new ModelFactory();
 		modelFactory.setMongoClient(this.mongoClient);
 		modelFactory.setClassLoader(this.getClass().getClassLoader());
-		modelFactory.setEnvironmentVariable(DBF.MONGO_DATABASE_NAME, databaseName);
+		modelFactory.setEnvironmentVariable(F.DATABASE_NAME, databaseName);
 		if (filePath != null) {
 			Properties props = new Properties();
 			try (InputStream is = new FileInputStream(
@@ -179,7 +179,7 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 			synchronized (pushNotificationServices) {
 				if (!pushNotificationServices.containsKey(authenticatorId)) {
 					ServiceAuthenticatorModel model = getModelFactory()
-							.getModel(ServiceAuthenticatorModel.class.toString());
+							.getModel(ServiceAuthenticatorModel.class.getName());
 					ServiceAuthenticatorBean bean = model.findById(authenticatorId);
 					if (bean != null) {
 						String serviceType = bean.getServiceType();

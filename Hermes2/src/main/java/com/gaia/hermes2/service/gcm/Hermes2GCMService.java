@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import com.gaia.hermes2.model.impl.PushTaskReporter;
+import com.gaia.hermes2.processor.PushTaskReporter;
 import com.gaia.hermes2.service.Hermes2AbstractPushNotificationService;
 import com.gaia.hermes2.service.Hermes2Notification;
 import com.gaia.hermes2.statics.F;
@@ -56,16 +56,10 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 			public void apply(MulticastResult result) {
 
 				getLogger().debug("success: " + result.getSuccess() + ", failure: " + result.getFailure() + "  thread: "
-						+ taskReporter.getTask().getThreadCount().get());
-				taskReporter.getTask().getGcmSuccessCount().addAndGet(result.getSuccess());
-				taskReporter.getTask().getGcmFailureCount().addAndGet(result.getFailure());
-				taskReporter.getTask().autoLastModify();
-				taskReporter.update();
-				if (taskReporter.getTask().getThreadCount().decrementAndGet() < 1) {
-					taskReporter.getTask().setDone(true);
-//					taskReporter.getTask().getTotalFailureCount()
-//							.addAndGet(taskReporter.getTask().getApnsFailureCount().get() + taskReporter.getTask().getGcmFailureCount().get());
-					taskReporter.update();
+						+ taskReporter.getThreadCount().get());
+				taskReporter.increaseGcmCount(result.getSuccess(), result.getFailure());
+				if (taskReporter.getThreadCount().decrementAndGet() < 1) {
+					taskReporter.complete();
 					getLogger().debug("done task..................... ");
 				}
 			}
@@ -102,7 +96,7 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 
 		final Message message = messageBuilder.build();
 		if (batchs.size() == 0) {
-			taskReporter.getTask().getThreadCount().decrementAndGet();
+			taskReporter.getThreadCount().decrementAndGet();
 		}
 		for (List<String> recipients : batchs) {
 			this.executor.submit(new Runnable() {
@@ -112,7 +106,7 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 					try {
 						Hermes2GCMService.this.asyncSend(message, recipients, taskReporter);
 					} catch (IOException e) {
-						taskReporter.getTask().getThreadCount().decrementAndGet();
+						taskReporter.getThreadCount().decrementAndGet();
 						getLogger().error("Unable to send message: ", e);
 					}
 				}

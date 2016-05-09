@@ -2,12 +2,10 @@ package com.gaia.hermes2.processor.register;
 
 import java.util.UUID;
 
-import com.gaia.hermes2.Hermes2RegisterHandler;
 import com.gaia.hermes2.bean.DeviceTokenBean;
 import com.gaia.hermes2.model.DeviceTokenModel;
 import com.gaia.hermes2.processor.Hermes2BaseProcessor;
 import com.gaia.hermes2.statics.F;
-import com.mario.entity.MessageHandler;
 import com.nhb.common.data.MapTuple;
 import com.nhb.common.data.PuElement;
 import com.nhb.common.data.PuObject;
@@ -17,13 +15,10 @@ import com.nhb.common.encrypt.sha.SHAEncryptor;
 public class RegisterTokenProcessor extends Hermes2BaseProcessor {
 
 	@Override
-	protected PuElement process(MessageHandler handler, PuObjectRO data) {
-		if (handler instanceof Hermes2RegisterHandler) {
-			Hermes2RegisterHandler registerHandler = (Hermes2RegisterHandler) handler;
-
+	protected PuElement process(PuObjectRO data) {
+		if (this.isFromRegisterHandler()) {
 			boolean sandbox = data.getBoolean(F.SANDBOX, false);
-			DeviceTokenModel deviceModel = registerHandler.getModelFactory()
-					.getModel(DeviceTokenModel.class.toString());
+			DeviceTokenModel deviceModel = getDeviceTokenModel();
 			deviceModel.setSandbox(sandbox);
 			String applicationId = data.getString(F.APPLICATION_ID);
 			String authenticatorId = data.getString(F.AUTHENTICATOR_ID);

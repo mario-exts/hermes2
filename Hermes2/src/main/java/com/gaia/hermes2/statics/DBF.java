@@ -18,7 +18,7 @@ public class DBF extends F{
 	public static final String APNS_FAILURE_COUNT = "apns_failure_count";
 //	public static final String TOTAL_FAILURE_COUNT = "totalFailureCount";
 	public static final String START_TIME = "start_time";
-	public static final String LAST_MODIFY = "last_modify";
+	public static final String LAST_MODIFIED = "last_modified";
 	public static final String IS_DONE = "is_done";
 
 }

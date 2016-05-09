@@ -2,12 +2,10 @@ package com.gaia.hermes2.processor.register;
 
 import java.util.UUID;
 
-import com.gaia.hermes2.Hermes2RegisterHandler;
 import com.gaia.hermes2.bean.ServiceAuthenticatorBean;
 import com.gaia.hermes2.model.ServiceAuthenticatorModel;
 import com.gaia.hermes2.processor.Hermes2BaseProcessor;
 import com.gaia.hermes2.statics.F;
-import com.mario.entity.MessageHandler;
 import com.nhb.common.data.MapTuple;
 import com.nhb.common.data.PuElement;
 import com.nhb.common.data.PuObject;
@@ -17,11 +15,10 @@ import com.nhb.common.encrypt.sha.SHAEncryptor;
 public class AddAuthenticatorProcessor extends Hermes2BaseProcessor {
 
 	@Override
-	protected PuElement process(MessageHandler handler, PuObjectRO data) {
-		if (handler instanceof Hermes2RegisterHandler) {
-			Hermes2RegisterHandler registerHandler = (Hermes2RegisterHandler) handler;
-			ServiceAuthenticatorModel serviceModel = registerHandler.getModelFactory()
-					.getModel(ServiceAuthenticatorModel.class.toString());
+	protected PuElement process(PuObjectRO data) {
+		if (this.isFromRegisterHandler()) {
+
+			ServiceAuthenticatorModel serviceModel = getAuthenticatorModel();
 
 			String applicationId = data.getString(F.APPLICATION_ID);
 			String serviceType = data.getString(F.SERVICE_TYPE);
