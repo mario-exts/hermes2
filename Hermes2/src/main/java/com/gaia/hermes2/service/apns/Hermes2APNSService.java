@@ -50,7 +50,8 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 
 	@Override
 	public void init(PuObjectRO initParams) {
-//		getLogger().debug("Initializing {} with properties: {}", Hermes2APNSService.class.getName(), initParams);
+		// getLogger().debug("Initializing {} with properties: {}",
+		// Hermes2APNSService.class.getName(), initParams);
 		this.clientConfig = initParams.getPuObject(F.CLIENT_CONFIG);
 		this.applicationConfig = initParams.getPuObject(F.APPLICATION_CONFIG);
 		this.nioEventLoopGroup = new NioEventLoopGroup(
@@ -82,7 +83,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 	}
 
 	@Override
-	public void push(Hermes2Notification notification,PushTaskReporter taskReporter) {
+	public void push(Hermes2Notification notification, PushTaskReporter taskReporter) {
 
 		final ApnsPayloadBuilder payloadBuilder = new ApnsPayloadBuilder();
 		payloadBuilder.setAlertBody(notification.getMessage());
@@ -106,10 +107,10 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 			try {
 				clients.add(this.apnsClientPool.borrowObject());
 			} catch (Exception e) {
-				getLogger().debug("apns error: "+e.getMessage());
-//				e.printStackTrace();
-//				taskReporter.getTask().getTotalFailureCount().addAndGet(numClients);
-//				break;
+				getLogger().debug("apns error: " + e.getMessage());
+				// e.printStackTrace();
+				// taskReporter.getTask().getTotalFailureCount().addAndGet(numClients);
+				// break;
 			}
 		}
 
@@ -120,7 +121,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 
 		getLogger().debug("will send {} message(s) per client", numMessagePerClient);
 		final String topic = this.applicationConfig.getString(F.TOPIC, null);
-		CountDownLatch countDown=new CountDownLatch(clients.size());
+		CountDownLatch countDown = new CountDownLatch(clients.size());
 		for (int i = 0; i < clients.size(); i++) {
 			final int index = i;
 			this.executor.submit(new Runnable() {
@@ -131,19 +132,23 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 				@Override
 				public void run() {
 					try {
-						
+
 						int startId = clientId * numMessagePerClient;
 						int endId = startId + numMessagePerClient;
-						int successCount=0;
-						int failureCount=0;
+						int successCount = 0;
+						int failureCount = 0;
 						getLogger().debug("start sending from token {} to {}", startId, endId);
-						
+
 						for (int i = startId; i < endId; i++) {
 							NotificationItem notificationItem = new NotificationItem(recipients[i], payload, topic);
-							Future<PushNotificationResponse<NotificationItem>> future=this.client.sendNotification(notificationItem);
-							if(future.get().isAccepted()){
+							Future<PushNotificationResponse<NotificationItem>> future = this.client
+									.sendNotification(notificationItem);
+							PushNotificationResponse<NotificationItem> response = future.get();
+							getLogger().debug("Response from APNS: {}", (response.isAccepted() ? "SUCCESS"
+									: ("REJECTED, reson: " + response.getRejectionReason())));
+							if (response.isAccepted()) {
 								successCount++;
-							}else{
+							} else {
 								failureCount++;
 							}
 						}
@@ -157,21 +162,21 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 					} finally {
 						countDown.countDown();
 						apnsClientPool.returnObject(this.client);
-						
+
 					}
 				}
 			});
 		}
-		
-		try{
+
+		try {
 			countDown.await();
-			int i=taskReporter.getThreadCount().decrementAndGet();
-			getLogger().debug("thread: "+i);
-			if(i<=0){
+			int i = taskReporter.getThreadCount().decrementAndGet();
+			getLogger().debug("thread: " + i);
+			if (i <= 0) {
 				taskReporter.complete();
 				getLogger().debug("done task.....................");
 			}
-		}catch(InterruptedException e){
+		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
 		}
 	}
