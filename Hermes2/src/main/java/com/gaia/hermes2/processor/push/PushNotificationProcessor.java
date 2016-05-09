@@ -80,7 +80,7 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 		bean.autoStartTime();
 		bean.autoId();
 		PuObject puo = new PuObject();
-		Iterator<Entry<String, PuValue>> iterator = puo.iterator();
+		Iterator<Entry<String, PuValue>> iterator = data.iterator();
 		while (iterator.hasNext()) {
 			Entry<String, PuValue> entry = iterator.next();
 			puo.set(entry.getKey(), entry.getValue().getString());
@@ -131,7 +131,6 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 				});
 			} else {
 				taskReporter.getThreadCount().decrementAndGet();
-				// bean.getTotalFailureCount().addAndGet(entry.getValue().size());
 				getLogger().warn("Unable to get notification service for authenticator id " + entry.getKey());
 			}
 
