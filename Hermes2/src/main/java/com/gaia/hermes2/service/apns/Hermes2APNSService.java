@@ -163,7 +163,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 				try {
 					sendingDoneSignal.await();
 				} catch (InterruptedException e) {
-					// TODO how to deal with interup exception
+					// FIXME how to deal with interrupted exception
 					getLogger().error("Thread interupted while in waiting for sending to success");
 					throw new RuntimeException(e);
 				}
@@ -178,7 +178,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 						if (!success) {
 							// String token =
 							response.getPushNotification().getToken();
-							// TODO remove invalid token...
+							// FIXME remove invalid token...
 						}
 					} catch (InterruptedException | ExecutionException e) {
 						getLogger().error("Error while trying to get response", e);
