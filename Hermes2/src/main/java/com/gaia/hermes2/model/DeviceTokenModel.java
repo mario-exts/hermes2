@@ -18,6 +18,8 @@ public interface DeviceTokenModel {
 	List<DeviceTokenBean> findByToken(String token);
 
 	DeviceTokenBean findByChecksum(String checksum);
+	
+	int removeMulti(List<String> tokens);
 
 	void setSandbox(boolean useSandbox);
 }

@@ -33,8 +33,6 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 
 	@Override
 	public void init(PuObjectRO properties) {
-		// getLogger().debug("initializing {} with properties: {}",
-		// Hermes2GCMService.class.getName(), properties);
 		this.clientConfig = properties.getPuObject(F.CLIENT_CONFIG, new PuObject());
 		this.applicationConfig = properties.getPuObject(F.APPLICATION_CONFIG, new PuObject());
 		this.asyncClient = new AsyncSender(applicationConfig.getString(F.AUTHENTICATOR));
@@ -55,12 +53,12 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 			@Override
 			public void apply(MulticastResult result) {
 
-				getLogger().debug("success: " + result.getSuccess() + ", failure: " + result.getFailure() + "  thread: "
+				getLogger().debug("Hermes2Push GCM is success: " + result.getSuccess() + ", failure: " + result.getFailure() + "  in thread: "
 						+ taskReporter.getThreadCount().get());
 				taskReporter.increaseGcmCount(result.getSuccess(), result.getFailure());
-				if (taskReporter.getThreadCount().decrementAndGet() < 1) {
+				if (taskReporter.getThreadCount().decrementAndGet() == 0) {
 					taskReporter.complete();
-					getLogger().debug("done task..................... ");
+					getLogger().debug("Hermes2Push is done..................... ");
 				}
 			}
 		};

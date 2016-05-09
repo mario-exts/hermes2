@@ -8,8 +8,11 @@ import org.bson.Document;
 import com.gaia.hermes2.bean.DeviceTokenBean;
 import com.gaia.hermes2.model.DeviceTokenModel;
 import com.gaia.hermes2.statics.DBF;
+import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.DeleteOneModel;
+import com.mongodb.client.model.WriteModel;
 
 public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceTokenModel {
 	private MongoCollection<Document> collection;
@@ -108,5 +111,19 @@ public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceT
 		}
 		getCollection().insertMany(batchDoc);
 	}
+
+	@Override
+	public int removeMulti(List<String> tokens) {
+		MongoCollection<Document> collection = this.getCollection();
+		List<WriteModel<Document>> removes = new ArrayList<>();
+		for (String token:tokens) {
+			removes.add(new DeleteOneModel<>(new Document().append(DBF.TOKEN, token)));
+		}
+		BulkWriteResult result = collection.bulkWrite(removes);
+		getLogger().info("Attempt to update {} keys, success {}", tokens.size(), result.getModifiedCount());
+		return result.getModifiedCount();
+	}
+
+	
 
 }

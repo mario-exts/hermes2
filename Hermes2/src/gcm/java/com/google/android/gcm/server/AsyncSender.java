@@ -154,7 +154,6 @@ public class AsyncSender {
 								try {
 									sendNoRetry(message, to, thisCallback);
 								} catch (IOException e) {
-									// TODO Auto-generated catch block
 									e.printStackTrace();
 								}
 								int sleepTime = backoff / 2 + random.nextInt(backoff);
@@ -275,7 +274,6 @@ public class AsyncSender {
 		try {
 			post(GCM_SEND_ENDPOINT, "application/json", jsonRequest.toJSON(), postCallback);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -345,7 +343,6 @@ public class AsyncSender {
 							try {
 								sendNoRetry(message, regIds, thisCallback);
 							} catch (IOException e) {
-								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
 							int sleepTime = backoff / 2 + random.nextInt(backoff);

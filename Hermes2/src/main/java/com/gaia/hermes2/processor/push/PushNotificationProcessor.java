@@ -70,6 +70,7 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 		}
 		PushTaskModel pushTaskModel = getPushTaskModel();
 		PushTaskReporter taskReporter = new PushTaskReporter(pushTaskModel);
+		taskReporter.setTokenModel(getDeviceTokenModel());
 		PushTaskBean bean=new PushTaskBean();
 		
 		bean.setAppId(applicationId);
@@ -91,7 +92,7 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 		pushTaskModel.insert(bean);
 		taskReporter.setTaskId(bean.getId());
 		taskReporter.getThreadCount().addAndGet(targetDevicesByService.size());
-
+		
 		String message = data.getString(F.MESSAGE);
 		String messageId;
 		if (data.variableExists(F.MESSAGE_ID)) {

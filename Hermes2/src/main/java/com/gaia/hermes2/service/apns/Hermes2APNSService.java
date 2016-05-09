@@ -51,8 +51,6 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 
 	@Override
 	public void init(PuObjectRO initParams) {
-		// getLogger().debug("Initializing {} with properties: {}",
-		// Hermes2APNSService.class.getName(), initParams);
 		this.clientConfig = initParams.getPuObject(F.CLIENT_CONFIG);
 		this.applicationConfig = initParams.getPuObject(F.APPLICATION_CONFIG);
 		this.nioEventLoopGroup = new NioEventLoopGroup(
@@ -111,9 +109,6 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 				clients.add(this.apnsClientPool.borrowObject());
 			} catch (Exception e) {
 				getLogger().debug("apns error: " + e.getMessage());
-				// e.printStackTrace();
-				// taskReporter.getTask().getTotalFailureCount().addAndGet(numClients);
-				// break;
 			}
 		}
 
@@ -170,15 +165,16 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 
 				int successCount = 0;
 				int failureCount = 0;
+				List<String> failureTokens = new ArrayList<>();
 				for (Future<PushNotificationResponse<NotificationItem>> future : responseFutures) {
 					boolean success = false;
 					try {
 						PushNotificationResponse<NotificationItem> response = future.get();
 						success = response.isAccepted();
 						if (!success) {
-							// String token =
-							response.getPushNotification().getToken();
-							// FIXME remove invalid token...
+							if (response.getRejectionReason().equalsIgnoreCase("Unregistered")) {
+								failureTokens.add(response.getPushNotification().getToken());
+							}
 						}
 					} catch (InterruptedException | ExecutionException e) {
 						getLogger().error("Error while trying to get response", e);
@@ -191,11 +187,12 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 				}
 
 				taskReporter.increaseApnsCount(successCount, failureCount);
-				int i = taskReporter.getThreadCount().decrementAndGet();
-				getLogger().debug("thread: " + i);
-				if (i <= 0) {
+				int removedCount = taskReporter.removeTokens(failureTokens);
+				getLogger().debug("Trying to remove {} Unregisted tokens, success is {}", failureTokens.size(),
+						removedCount);
+				if (taskReporter.getThreadCount().decrementAndGet() == 0) {
 					taskReporter.complete();
-					getLogger().debug("done task.....................");
+					getLogger().debug("Hermes2Push is done .....................");
 				}
 			}
 		});
