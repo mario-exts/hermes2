@@ -550,16 +550,19 @@ public class AsyncSender {
 	/**
 	 * Makes an HTTP POST request to a given endpoint.
 	 *
-	 * <p> <strong>Note: </strong> the returned connected should not be
+	 * <p>
+	 * <strong>Note: </strong> the returned connected should not be
 	 * disconnected, otherwise it would kill persistent connections made using
 	 * Keep-Alive.
 	 *
-	 * @param url endpoint to post the request. @param contentType type of
-	 * request. @param body body of the request.
+	 * @param url
+	 *            endpoint to post the request. @param contentType type of
+	 *            request. @param body body of the request.
 	 *
 	 * @return the underlying connection.
 	 *
-	 * @throws IOException propagated from underlying methods. @throws
+	 * @throws IOException
+	 *             propagated from underlying methods. @throws
 	 */
 	public void post(String url, String contentType, String body, Callback<PuObject> callback) throws IOException {
 		if (url == null || contentType == null || body == null) {

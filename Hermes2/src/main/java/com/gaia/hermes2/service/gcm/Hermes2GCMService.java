@@ -45,16 +45,15 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 		// do nothing
 	}
 
-	private void asyncSend(Message message, List<String> recipients, PushTaskReporter taskReporter)
-			throws IOException {
+	private void asyncSend(Message message, List<String> recipients, PushTaskReporter taskReporter) throws IOException {
 		getLogger().debug("sending message {} to {} recipients", message, recipients.size());
 		Callback<MulticastResult> callback = new Callback<MulticastResult>() {
 
 			@Override
 			public void apply(MulticastResult result) {
 
-				getLogger().debug("Hermes2Push GCM is success: " + result.getSuccess() + ", failure: " + result.getFailure() + "  in thread: "
-						+ taskReporter.getThreadCount().get());
+				getLogger().debug("Hermes2Push GCM is success: " + result.getSuccess() + ", failure: "
+						+ result.getFailure() + "  in thread: " + taskReporter.getThreadCount().get());
 				taskReporter.increaseGcmCount(result.getSuccess(), result.getFailure());
 				if (taskReporter.getThreadCount().decrementAndGet() == 0) {
 					taskReporter.complete();
