@@ -20,5 +20,6 @@ public class DBF extends F{
 	public static final String START_TIME = "start_time";
 	public static final String LAST_MODIFIED = "last_modified";
 	public static final String IS_DONE = "is_done";
+	public static final String PUSH_REQUEST_DATA="request_data";
 
 }

@@ -3,8 +3,10 @@ package com.gaia.hermes2.processor.push;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -23,6 +25,7 @@ import com.nhb.common.data.MapTuple;
 import com.nhb.common.data.PuElement;
 import com.nhb.common.data.PuObject;
 import com.nhb.common.data.PuObjectRO;
+import com.nhb.common.data.PuValue;
 
 public class PushNotificationProcessor extends Hermes2BaseProcessor {
 
@@ -71,12 +74,19 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 		PushTaskModel pushTaskModel = getPushTaskModel();
 		PushTaskReporter taskReporter = new PushTaskReporter(pushTaskModel);
 		taskReporter.setTokenModel(getDeviceTokenModel());
-		PushTaskBean bean=new PushTaskBean();
-		
+		PushTaskBean bean = new PushTaskBean();
+
 		bean.setAppId(applicationId);
 		bean.autoStartTime();
 		bean.autoId();
-		
+		PuObject puo = new PuObject();
+		Iterator<Entry<String, PuValue>> iterator = puo.iterator();
+		while (iterator.hasNext()) {
+			Entry<String, PuValue> entry = iterator.next();
+			puo.set(entry.getKey(), entry.getValue().getString());
+		}
+		bean.setPushRequest(puo.toJSON());
+
 		int gcmCount = 0;
 		int apnsCount = 0;
 		if (countByService.containsKey("gcm")) {
@@ -85,14 +95,14 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 		if (countByService.containsKey("apns")) {
 			apnsCount = countByService.get("apns");
 		}
-		
+
 		bean.setTotalCount(gcmCount + apnsCount);
 		bean.setApnsCount(apnsCount);
 		bean.setGcmCount(gcmCount);
 		pushTaskModel.insert(bean);
 		taskReporter.setTaskId(bean.getId());
 		taskReporter.getThreadCount().addAndGet(targetDevicesByService.size());
-		
+
 		String message = data.getString(F.MESSAGE);
 		String messageId;
 		if (data.variableExists(F.MESSAGE_ID)) {

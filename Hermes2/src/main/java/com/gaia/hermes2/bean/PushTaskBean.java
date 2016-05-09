@@ -13,7 +13,6 @@ public class PushTaskBean extends AbstractMongoBean {
 
 	private String id;
 	private String appId;
-	// private String serviceType;
 	private int totalCount;
 	private int gcmCount;
 	private int apnsCount;
@@ -21,10 +20,10 @@ public class PushTaskBean extends AbstractMongoBean {
 	private int apnsSuccessCount;
 	private int gcmFailureCount;
 	private int apnsFailureCount;
-	// private int totalFailureCount;
 	private long startTime;
 	private long lastModified;
 	private boolean isDone;
+	private String pushRequest;
 
 	public PushTaskBean() {
 		totalCount = 0;
@@ -34,7 +33,6 @@ public class PushTaskBean extends AbstractMongoBean {
 	public Document toDocument() {
 		Document doc = new Document();
 		doc.put(F.APPLICATION_ID, this.appId);
-		// doc.put(F.SERVICE_TYPE, this.serviceType);
 		doc.put(DBF.ID, this.id);
 		doc.put(DBF.TOTAL_COUNT, this.totalCount);
 		doc.put(DBF.APNS_COUNT, this.apnsCount);
@@ -43,10 +41,10 @@ public class PushTaskBean extends AbstractMongoBean {
 		doc.put(DBF.GCM_SUCCESS_COUNT, this.gcmSuccessCount);
 		doc.put(DBF.GCM_FAILURE_COUNT, this.gcmFailureCount);
 		doc.put(DBF.APNS_FAILURE_COUNT, this.apnsFailureCount);
-		// doc.put(F.TOTAL_FAILURE_COUNT, this.totalFailureCount.get());
 		doc.put(DBF.START_TIME, this.startTime);
 		doc.put(DBF.LAST_MODIFIED, this.lastModified);
 		doc.put(DBF.IS_DONE, this.isDone);
+		doc.put(DBF.PUSH_REQUEST_DATA, this.pushRequest);
 		return doc;
 	}
 
@@ -61,11 +59,10 @@ public class PushTaskBean extends AbstractMongoBean {
 		bean.setGcmSuccessCount(doc.getInteger(DBF.GCM_SUCCESS_COUNT, 0));
 		bean.setApnsFailureCount(doc.getInteger(DBF.APNS_FAILURE_COUNT, 0));
 		bean.setGcmFailureCount(doc.getInteger(DBF.GCM_FAILURE_COUNT, 0));
-		// bean.setTotalFailureCount(doc.getInteger(DBF.TOTAL_FAILURE_COUNT,
-		// 0)));
 		bean.setStartTime(doc.getLong(DBF.START_TIME));
 		bean.setLastModified(doc.getLong(DBF.LAST_MODIFIED));
 		bean.setDone(doc.getBoolean(DBF.IS_DONE, false));
+		bean.setPushRequest(doc.getString(DBF.PUSH_REQUEST_DATA));
 		return bean;
 	}
 
@@ -74,9 +71,7 @@ public class PushTaskBean extends AbstractMongoBean {
 		PuObject puo = new PuObject();
 		puo.set(F.ID, this.id);
 		puo.set(F.APPLICATION_ID, this.appId);
-		// puo.set(F.SERVICE_TYPE, this.serviceType);
 		puo.set(F.TOTAL_COUNT, this.totalCount);
-		// puo.set(F.TOTAL_FAILURE_COUNT, this.totalFailureCount);
 		PuObject gcm = new PuObject();
 		gcm.set(F.GCM_COUNT, this.gcmCount);
 		gcm.set(F.GCM_SUCCESS_COUNT, this.gcmSuccessCount);
@@ -90,7 +85,17 @@ public class PushTaskBean extends AbstractMongoBean {
 		puo.set(F.START_TIME, this.startTime);
 		puo.set(F.LAST_MODIFIED, this.lastModified);
 		puo.set(F.IS_DONE, this.isDone);
+		puo.set(F.PUSH_REQUEST_DATA, this.pushRequest);
 		return puo;
+	}
+	
+
+	public String getPushRequest() {
+		return pushRequest;
+	}
+
+	public void setPushRequest(String pushRequest) {
+		this.pushRequest = pushRequest;
 	}
 
 	public String getAppId() {

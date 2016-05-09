@@ -162,7 +162,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 					getLogger().error("Thread interupted while in waiting for sending to success");
 					throw new RuntimeException(e);
 				}
-
+				getLogger().debug("Push Apns was completed, start to get response");
 				int successCount = 0;
 				int failureCount = 0;
 				List<String> failureTokens = new ArrayList<>();
@@ -187,12 +187,17 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 				}
 
 				taskReporter.increaseApnsCount(successCount, failureCount);
-				int removedCount = taskReporter.removeTokens(failureTokens);
-				getLogger().debug("Trying to remove {} Unregisted tokens, success is {}", failureTokens.size(),
-						removedCount);
-				if (taskReporter.getThreadCount().decrementAndGet() == 0) {
+				getLogger().debug("ApnsPush get {} success, {} failure at thread {}", successCount, failureCount,
+						taskReporter.getThreadCount());
+				if (taskReporter.decrementThread() == 0) {
 					taskReporter.complete();
 					getLogger().debug("Hermes2Push is done .....................");
+				}
+				int removedCount = taskReporter.removeTokens(failureTokens);
+				if(removedCount>0){
+					getLogger().debug("Trying to remove {} Unregisted tokens, success is {}", failureTokens.size(),
+							removedCount);
+					
 				}
 			}
 		});
