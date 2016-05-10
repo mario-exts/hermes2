@@ -1,5 +1,6 @@
 package com.gaia.hermes2.processor.push;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -45,7 +46,16 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 
 		if (data.variableExists(F.TOKEN)) {
 			String token = data.getString(F.TOKEN);
-			beans = deviceModel.findByToken(token);
+			DeviceTokenBean bean = deviceModel.findByToken(token);
+			if (bean != null) {
+				getLogger().debug("Found device token: " + bean.getToken());
+				if (beans == null) {
+					beans = new ArrayList<>();
+				}
+				beans.add(bean);
+			} else {
+				getLogger().warn("Unable to find DeviceToken for tokenId: " + token);
+			}
 		} else {
 			if (data.variableExists(F.SERVICE_TYPE)) {
 				String serviceType = data.getString(F.SERVICE_TYPE);

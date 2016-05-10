@@ -15,7 +15,7 @@ public interface DeviceTokenModel {
 
 	List<DeviceTokenBean> findByAppIdAndServiceType(String appId, String serviceType);
 
-	List<DeviceTokenBean> findByToken(String token);
+	DeviceTokenBean findByToken(String token);
 
 	DeviceTokenBean findByChecksum(String checksum);
 	

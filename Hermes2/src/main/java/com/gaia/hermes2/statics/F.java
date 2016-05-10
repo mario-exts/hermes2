@@ -48,4 +48,5 @@ public class F extends Fields {
 	public static final String IS_DONE = "isDone";
 	public static final String MESSAGE_ID="messageId";
 	public static final String PUSH_REQUEST_DATA="requestData";
+	public static final String BADGE = "badge";
 }

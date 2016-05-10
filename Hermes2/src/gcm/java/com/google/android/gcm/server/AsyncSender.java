@@ -59,12 +59,11 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.RequestBuilder;
 
+import com.nhb.common.BaseLoggable;
 import com.nhb.common.async.Callback;
 import com.nhb.common.data.PuArray;
 import com.nhb.common.data.PuElement;
@@ -75,7 +74,7 @@ import com.nhb.messaging.http.HttpClientHelper;
 /**
  * Helper class to send messages to the GCM service using an API Key.
  */
-public class AsyncSender {
+public class AsyncSender extends BaseLoggable {
 
 	protected static final String UTF8 = "UTF-8";
 
@@ -89,7 +88,6 @@ public class AsyncSender {
 	protected static final int MAX_BACKOFF_DELAY = 1024000;
 
 	protected final Random random = new Random();
-	protected static final Logger logger = Logger.getLogger(AsyncSender.class.getName());
 
 	private final String key;
 	private HttpClientHelper http;
@@ -147,10 +145,8 @@ public class AsyncSender {
 					public void run() {
 						if (null == result) {
 							if (counter.incrementAndGet() <= retries) {
-								if (logger.isLoggable(Level.FINE)) {
-									logger.fine(
-											"Attempt #" + attempt + " to send message " + message + " to regIds " + to);
-								}
+								getLogger().debug(
+										"Attempt #" + attempt + " to send message " + message + " to regIds " + to);
 								try {
 									sendNoRetry(message, to, thisCallback);
 								} catch (IOException e) {
@@ -221,7 +217,7 @@ public class AsyncSender {
 								}
 								callback.apply(resultBuilder.build());
 							} else {
-								logger.log(Level.WARNING, "Found null or " + arr.size() + " results, expected one");
+								getLogger().warn("Found null or " + arr.size() + " results, expected one");
 								callback.apply(null);
 								return;
 							}
@@ -238,8 +234,8 @@ public class AsyncSender {
 								resultBuilder.errorCode(error);
 								callback.apply(resultBuilder.build());
 							} else {
-								logger.log(Level.WARNING, "Expected " + JSON_MESSAGE_ID + " or " + JSON_ERROR
-										+ " found: " + data.toJSON());
+								getLogger().warn("Expected " + JSON_MESSAGE_ID + " or " + JSON_ERROR + " found: "
+										+ data.toJSON());
 								callback.apply(null);
 								return;
 							}
@@ -261,7 +257,7 @@ public class AsyncSender {
 							resultBuilder.success(success).failure(failure).failedRegistrationIds(failedIds);
 							callback.apply(resultBuilder.build());
 						} else {
-							logger.warning("Unrecognized response: " + data.toJSON());
+							getLogger().warn("Unrecognized response: " + data.toJSON());
 							// throw new IOException(data.toJSON());
 							callback.apply(null);
 
@@ -330,16 +326,14 @@ public class AsyncSender {
 							}
 						} else {
 							multicastId = multicastResult.getMulticastId();
-							logger.fine("multicast_id on attempt # " + counter.get() + ": " + multicastId);
+							getLogger().debug("Multicast_id on attempt # " + counter.get() + ": " + multicastId);
 							multicastIds.add(multicastId);
 							unsentRegIds = updateStatus(unsentRegIds, results, multicastResult);
 							isRetry = !unsentRegIds.isEmpty() && counter.get() <= retries;
 						}
 						if (isRetry) {
-							if (logger.isLoggable(Level.FINE)) {
-								logger.fine("Attempt #" + counter.get() + " to send message " + message + " to regIds "
-										+ regIds.size());
-							}
+							getLogger().debug("Attempt #" + counter.get() + " to send message " + message
+									+ " to regIds " + regIds.size());
 							try {
 								sendNoRetry(message, regIds, thisCallback);
 							} catch (IOException e) {
@@ -451,7 +445,7 @@ public class AsyncSender {
 					@Override
 					public void run() {
 						try {
-//							System.out.println("data:" +result.toJSON());
+							// System.out.println("data:" +result.toJSON());
 							int success = result.getInteger(JSON_SUCCESS);
 							int failure = result.getInteger(JSON_FAILURE);
 							int canonicalIds = result.getInteger(JSON_CANONICAL_IDS);
@@ -489,7 +483,9 @@ public class AsyncSender {
 			}
 		};
 		try {
-			post(GCM_SEND_ENDPOINT, "application/json", jsonRequest.toJSON(), callback);
+			String json = jsonRequest.toJSON();
+			getLogger().debug("Sending payload: " + json);
+			post(GCM_SEND_ENDPOINT, "application/json", json, callback);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -570,14 +566,14 @@ public class AsyncSender {
 			throw new IllegalArgumentException("arguments cannot be null");
 		}
 		if (!url.startsWith("https://")) {
-			logger.warning("URL does not use https: " + url);
+			getLogger().warn("URL does not use https: " + url);
 		}
 		PuObject data = PuObject.fromJSON(body);
 		http = new HttpClientHelper();
 		http.setUsingMultipath(false);
 		RequestBuilder builder = null;
 		builder = RequestBuilder.post(GCM_SEND_ENDPOINT).addHeader("Content-Type", contentType)
-				.addHeader("Authorization", "key=" + key).setCharset(Charset.forName("utf8"));
+				.addHeader("Authorization", "key=" + key).setCharset(Charset.forName("UTF-8"));
 
 		HttpAsyncFuture future = http.executeAsync(builder, data);
 		future.setCallback(new Callback<HttpResponse>() {
