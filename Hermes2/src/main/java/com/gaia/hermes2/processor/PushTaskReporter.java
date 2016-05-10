@@ -24,21 +24,21 @@ public class PushTaskReporter {
 	public boolean increaseApnsCount(int success, int failure) {
 		return model.updateApns(this.taskId, success, failure);
 	}
-	
-	public int removeTokens(List<String> tokens){
-		if(getTokenModel()!=null){
+
+	public int removeTokens(List<String> tokens) {
+		if (getTokenModel() != null && tokens.size() > 0) {
 			return getTokenModel().removeMulti(tokens);
 		}
 		return 0;
 	}
-	
+
 	public boolean complete() {
 		return model.updateTaskState(this.taskId, true);
 	}
 
-	// public PushTaskBean getTask(){
-	// return model.findByTaskId(taskId);
-	// }
+	public int decrementThread() {
+		return this.getThreadCount().decrementAndGet();
+	}
 
 	public void setTaskId(String id) {
 		this.taskId = id;

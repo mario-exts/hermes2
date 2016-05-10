@@ -14,6 +14,7 @@ import com.google.android.gcm.server.AsyncSender;
 import com.google.android.gcm.server.Message;
 import com.google.android.gcm.server.Message.Builder;
 import com.google.android.gcm.server.MulticastResult;
+import com.google.android.gcm.server.Result;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.nhb.common.async.Callback;
 import com.nhb.common.data.PuObject;
@@ -51,14 +52,34 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 
 			@Override
 			public void apply(MulticastResult result) {
+				executor.execute(new Runnable() {
 
-				getLogger().debug("Hermes2Push GCM is success: " + result.getSuccess() + ", failure: "
-						+ result.getFailure() + "  in thread: " + taskReporter.getThreadCount().get());
-				taskReporter.increaseGcmCount(result.getSuccess(), result.getFailure());
-				if (taskReporter.getThreadCount().decrementAndGet() == 0) {
-					taskReporter.complete();
-					getLogger().debug("Hermes2Push is done..................... ");
-				}
+					@Override
+					public void run() {
+						getLogger().debug("Hermes2Push GCM is success: " + result.getSuccess() + ", failure: "
+								+ result.getFailure() + "  in thread: " + taskReporter.getThreadCount().get());
+
+						taskReporter.increaseGcmCount(result.getSuccess(), result.getFailure());
+
+						if (taskReporter.decrementThread() == 0) {
+							taskReporter.complete();
+							getLogger().debug("Hermes2Push is done..................... ");
+						}
+						// TODO Remove error tokens
+						List<String> errorTokens = new ArrayList<>();
+						for (Result re : result.getResults()) {
+							if (re.getCanonicalRegistrationId() != null && re.getErrorCodeName() != null
+									&& re.getErrorCodeName().equalsIgnoreCase("Unregistered Device")) {
+								errorTokens.add(re.getCanonicalRegistrationId());
+							}
+						}
+						if (errorTokens.size() > 0) {
+							getLogger().debug("Get {} error tokens in GCM push, start to remove", errorTokens.size());
+							taskReporter.removeTokens(errorTokens);
+						}
+
+					}
+				});
 			}
 		};
 

@@ -451,6 +451,7 @@ public class AsyncSender {
 					@Override
 					public void run() {
 						try {
+//							System.out.println("data:" +result.toJSON());
 							int success = result.getInteger(JSON_SUCCESS);
 							int failure = result.getInteger(JSON_FAILURE);
 							int canonicalIds = result.getInteger(JSON_CANONICAL_IDS);

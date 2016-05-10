@@ -47,4 +47,5 @@ public class F extends Fields {
 	public static final String LAST_MODIFIED = "lastModified";
 	public static final String IS_DONE = "isDone";
 	public static final String MESSAGE_ID="messageId";
+	public static final String PUSH_REQUEST_DATA="requestData";
 }
