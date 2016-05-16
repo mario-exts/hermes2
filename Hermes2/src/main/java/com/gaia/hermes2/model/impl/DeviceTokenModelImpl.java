@@ -120,7 +120,7 @@ public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceT
 			removes.add(new DeleteOneModel<>(new Document().append(DBF.TOKEN, token)));
 		}
 		BulkWriteResult result = collection.bulkWrite(removes);
-		getLogger().info("Attempt to update {} keys, success {}", tokens.size(), result.getModifiedCount());
+		getLogger().info("Attempt to remove {} keys, success {}", tokens.size(), result.getModifiedCount());
 		return result.getModifiedCount();
 	}
 

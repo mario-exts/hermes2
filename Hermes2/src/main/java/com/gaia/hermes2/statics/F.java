@@ -48,4 +48,13 @@ public class F extends Fields {
 	public static final String IS_DONE = "isDone";
 	public static final String MESSAGE_ID="messageId";
 	public static final String PUSH_REQUEST_DATA="requestData";
+	public static final String TO="to";
+	public static final String CONTENT="content";
+	public static final String SMS_TYPE="sms_type";
+	public static final String BRAND_NAME="brandname";
+	public static final String INVALID_PHONE="invalidPhone";
+	public static final String TOTAL_PRICE="totalPrice";
+	public static final String TOTAL_SMS="totalSMS";
+	public static final String TRAN_ID="tranId";
+	public static final String CODE="code";
 }
