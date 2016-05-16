@@ -55,8 +55,14 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 
 					@Override
 					public void run() {
-						getLogger().debug("Hermes2Push GCM is success: " + result.getSuccess() + ", failure: "
-								+ result.getFailure() + "  in thread: " + taskReporter.getThreadCount().get());
+						if(result==null){
+							getLogger().debug("GCM get null from callback, remaining thread: "
+											+taskReporter.getThreadCount());
+							taskReporter.decrementThread();
+							return;
+						}
+						getLogger().debug("GCM push is complete, success: " + result.getSuccess() + ", failure: "
+								+ result.getFailure() + ", remaining thread: " + taskReporter.getThreadCount().get());
 
 						taskReporter.increaseGcmCount(result.getSuccess(), result.getFailure());
 
@@ -101,11 +107,18 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 		for (String recipient : notification.getRecipients()) {
 			batchs.get(index++ % partitionCount).add(recipient);
 		}
-		String title = notification.getTitle();
+
 		Builder messageBuilder = new Message.Builder().addData(F.MESSAGE, notification.getMessage());
+
+		String title = notification.getTitle();
 		if (title != null) {
 			messageBuilder.addData(F.TITLE, title);
 		}
+
+		if (notification.getBadge() > 0) {
+			messageBuilder.addData(F.BADGE, String.valueOf(notification.getBadge()));
+		}
+
 		String messgeId = notification.getMessageId();
 		if (messgeId != null) {
 			messageBuilder.addData(F.MESSAGE_ID, messgeId);
@@ -114,6 +127,8 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 		final Message message = messageBuilder.build();
 		if (batchs.size() == 0) {
 			taskReporter.getThreadCount().decrementAndGet();
+		}else{
+			taskReporter.getThreadCount().addAndGet(batchs.size()-1);
 		}
 		for (List<String> recipients : batchs) {
 			this.executor.submit(new Runnable() {

@@ -18,13 +18,11 @@ public class TestAsyncPost {
 		app.register();
 
 	}
-
-	public void register() {
+	
+	public void push() {
 		PuObject puo = new PuObject();
-		puo.set("command", "registerToken");
+		puo.set("command", "push");
 		puo.set("appId", "4ec298c7-7b93-4d0a-b5c1-68ccea2307dc");
-		puo.set("authenticatorId", "d51a8708-4c15-471d-9781-0d39a57ac575");
-		puo.set("serviceType", "gcm");
 		try (HttpClientHelper http = new HttpClientHelper()) {
 			for (int i = 0; i < 2; i++) {
 				puo.set("token", UUID.randomUUID().toString());
@@ -33,7 +31,40 @@ public class TestAsyncPost {
 				http.setUsingMultipath(false);
 				RequestBuilder builder = null;
 				builder = RequestBuilder.post("http://localhost:8801/hermes2/register")
-						.addHeader("Content-Type", "multipart/form-data").setCharset(Charset.forName("utf8"));
+						.addHeader("Content-Type", "application/json").setCharset(Charset.forName("utf8"));
+
+				HttpAsyncFuture future = http.executeAsync(builder, puo);
+				future.setCallback(new Callback<HttpResponse>() {
+
+					@Override
+					public void apply(HttpResponse result) {
+
+					}
+
+				});
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+
+	}
+
+	public void register() {
+		PuObject puo = new PuObject();
+		puo.set("command", "registerToken");
+		puo.set("appId", "b03e405c-2cf8-4fc0-ba85-62cfd612f552");
+		puo.set("authenticatorId", "d51a8708-4c15-471d-9781-0d39a57ac575");
+		puo.set("serviceType", "gcm");
+		puo.set("sandbox", false);
+		try (HttpClientHelper http = new HttpClientHelper()) {
+			for (int i = 0; i < 2000; i++) {
+				puo.set("token", UUID.randomUUID().toString());
+				System.out.println("register: " + puo.get("token"));
+
+				http.setUsingMultipath(false);
+				RequestBuilder builder = null;
+				builder = RequestBuilder.post("http://localhost:8801/hermes2/register")
+						.addHeader("Content-Type", "application/json").setCharset(Charset.forName("utf8"));
 
 				HttpAsyncFuture future = http.executeAsync(builder, puo);
 				future.setCallback(new Callback<HttpResponse>() {

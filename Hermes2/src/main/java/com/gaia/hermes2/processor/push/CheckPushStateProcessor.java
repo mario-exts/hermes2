@@ -18,12 +18,14 @@ public class CheckPushStateProcessor extends Hermes2BaseProcessor {
 				String taskId = data.getString(F.ID);
 				PushTaskBean bean = model.findByTaskId(taskId);
 				if (bean != null) {
+					getLogger().debug("start checkTask with ID: "+taskId+"  is success");
 					return bean.toPuObject();
 				}
 			}
 		}
 		PuObject puo = new PuObject();
 		puo.set("status", "Kiểm tra thất bại");
+		getLogger().debug("checkTask is error");
 		return puo;
 	}
 
