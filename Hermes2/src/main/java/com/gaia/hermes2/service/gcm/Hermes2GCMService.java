@@ -40,7 +40,7 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 
 	@Override
 	public void close() throws IOException {
-		// do nothing
+		this.sender.close();
 	}
 
 	private void asyncSend(Message message, List<String> recipients, PushTaskReporter taskReporter) {

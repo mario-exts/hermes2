@@ -26,6 +26,8 @@ import static com.google.android.gcm.server.Constants.JSON_RESULTS;
 import static com.google.android.gcm.server.Constants.JSON_SUCCESS;
 import static com.google.android.gcm.server.Constants.TOKEN_CANONICAL_REG_ID;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
 
@@ -43,7 +45,7 @@ import com.nhb.common.data.PuObject;
 import com.nhb.messaging.http.HttpAsyncFuture;
 import com.nhb.messaging.http.HttpClientHelper;
 
-public class GCMAsyncSender extends BaseLoggable {
+public class GCMAsyncSender extends BaseLoggable implements Closeable {
 
 	private static final String DEFAULT_CONTENT_TYPE = "application/json";
 
@@ -128,5 +130,10 @@ public class GCMAsyncSender extends BaseLoggable {
 				}
 			}
 		});
+	}
+
+	@Override
+	public void close() throws IOException {
+		this.httpClient.close();
 	}
 }
