@@ -10,7 +10,7 @@ public class PushTaskReporter {
 	private String taskId;
 	private PushTaskModel model;
 	private DeviceTokenModel tokenModel;
-	private AtomicInteger threadCount;
+	private final AtomicInteger threadCount;
 
 	public PushTaskReporter(PushTaskModel model) {
 		this.model = model;
@@ -32,14 +32,6 @@ public class PushTaskReporter {
 		return 0;
 	}
 
-	public boolean complete() {
-		return model.updateTaskState(this.taskId, true);
-	}
-
-	public int decrementThread() {
-		return this.getThreadCount().decrementAndGet();
-	}
-
 	public void setTaskId(String id) {
 		this.taskId = id;
 	}
@@ -56,14 +48,6 @@ public class PushTaskReporter {
 		this.model = model;
 	}
 
-	public AtomicInteger getThreadCount() {
-		return threadCount;
-	}
-
-	public void setThreadCount(AtomicInteger threadCount) {
-		this.threadCount = threadCount;
-	}
-
 	public DeviceTokenModel getTokenModel() {
 		return tokenModel;
 	}
@@ -72,4 +56,23 @@ public class PushTaskReporter {
 		this.tokenModel = tokenModel;
 	}
 
+	public int getThreadCount() {
+		return threadCount.get();
+	}
+
+	public int decrementSubTaskCount() {
+		final int value = this.threadCount.decrementAndGet();
+		if (value == 0) {
+			this.complete();
+		}
+		return value;
+	}
+
+	public int addAndGetSubTaskCount(int byValue) {
+		return this.threadCount.addAndGet(byValue);
+	}
+
+	private boolean complete() {
+		return model.updateTaskState(this.taskId, true);
+	}
 }

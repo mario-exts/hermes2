@@ -111,7 +111,7 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 		bean.setGcmCount(gcmCount);
 		pushTaskModel.insert(bean);
 		taskReporter.setTaskId(bean.getId());
-		taskReporter.getThreadCount().addAndGet(targetDevicesByService.size());
+		taskReporter.addAndGetSubTaskCount(targetDevicesByService.size());
 
 		String message = data.getString(F.MESSAGE);
 		String messageId;
@@ -125,10 +125,14 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 		}
 
 		if (this.executor == null) {
-			this.executor = Executors.newCachedThreadPool(
-					new ThreadFactoryBuilder().setNameFormat("Hermes2PushProcessor " + " #%d").build());
+			synchronized (this) {
+				if (this.executor == null) {
+					this.executor = Executors.newCachedThreadPool(
+							new ThreadFactoryBuilder().setNameFormat("Hermes2PushProcessor " + " #%d").build());
+				}
+			}
 		}
-		getLogger().debug("start push with {} thread",targetDevicesByService.size());
+		getLogger().debug("start push with {} thread", targetDevicesByService.size());
 		targetDevicesByService.entrySet().forEach(entry -> {
 			Hermes2PushNotificationService service = getPushService(entry.getKey());
 			if (service != null) {
@@ -140,10 +144,9 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 					}
 				});
 			} else {
-				taskReporter.getThreadCount().decrementAndGet();
+				taskReporter.decrementSubTaskCount();
 				getLogger().warn("Unable to get notification service for authenticator id " + entry.getKey());
 			}
-
 		});
 
 		PuObject result = PuObject.fromObject(new MapTuple<>(F.STATUS, 0, F.TARGETS, countByService));

@@ -189,15 +189,14 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 				taskReporter.increaseApnsCount(successCount, failureCount);
 				getLogger().debug("ApnsPush get {} success, {} failure at thread {}", successCount, failureCount,
 						taskReporter.getThreadCount());
-				if (taskReporter.decrementThread() == 0) {
-					taskReporter.complete();
+				if (taskReporter.decrementSubTaskCount() == 0) {
 					getLogger().debug("Hermes2Push is done .....................");
 				}
 				int removedCount = taskReporter.removeTokens(failureTokens);
-				if(removedCount>0){
+				if (removedCount > 0) {
 					getLogger().debug("Trying to remove {} Unregisted tokens, success is {}", failureTokens.size(),
 							removedCount);
-					
+
 				}
 			}
 		});
