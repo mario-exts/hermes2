@@ -3,59 +3,93 @@ package com.gaia.hermes2.service.gcm;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import com.gaia.hermes2.processor.PushTaskReporter;
 import com.gaia.hermes2.service.Hermes2AbstractPushNotificationService;
 import com.gaia.hermes2.service.Hermes2Notification;
 import com.gaia.hermes2.statics.F;
 import com.google.android.gcm.server.Message;
 import com.google.android.gcm.server.Message.Builder;
 import com.google.android.gcm.server.MulticastResult;
-import com.google.android.gcm.server.Sender;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.nhb.common.async.Callback;
 import com.nhb.common.data.PuObject;
 import com.nhb.common.data.PuObjectRO;
 
 public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 
-	private final String RETRIES = "gcm.retries";
 	private final String BATCH_CHUNK_SIZE = "gcm.batchChunkSize";
 
 	public static int DEFAULT_RETRIES = 1;
 
 	private ExecutorService executor;
-
-	private Sender client;
 	private PuObjectRO clientConfig;
 	private PuObjectRO applicationConfig;
+	private GCMAsyncSender sender;
 
 	@Override
 	public void init(PuObjectRO properties) {
-		getLogger().debug("initializing {} with properties: {}", Hermes2GCMService.class.getName(), properties);
 		this.clientConfig = properties.getPuObject(F.CLIENT_CONFIG, new PuObject());
 		this.applicationConfig = properties.getPuObject(F.APPLICATION_CONFIG, new PuObject());
-
-		this.client = new Sender(applicationConfig.getString(F.AUTHENTICATOR));
+		this.sender = new GCMAsyncSender(applicationConfig.getString(F.AUTHENTICATOR));
 		this.executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
 				.setNameFormat("Hermes2GCM " + applicationConfig.getString(F.ID) + " #%d").build());
 	}
 
 	@Override
 	public void close() throws IOException {
-		// do nothing
+		this.sender.close();
 	}
 
-	private void _send(Message message, List<String> recipients) throws IOException {
+	private void asyncSend(Message message, List<String> recipients, PushTaskReporter taskReporter) {
 		getLogger().debug("sending message {} to {} recipients", message, recipients.size());
-		MulticastResult result = this.client.send(message, recipients,
-				this.clientConfig.getInteger(RETRIES, DEFAULT_RETRIES));
-		getLogger().debug("success: " + result.getSuccess() + ", failure: " + result.getFailure());
+
+		Callback<MulticastResult> callback = new Callback<MulticastResult>() {
+
+			@Override
+			public void apply(final MulticastResult result) {
+
+				// delegate result handling to another thread
+				executor.submit(new Runnable() {
+					public void run() {
+						getLogger().debug("GCM push is complete, success: " + result.getSuccess() + ", failure: "
+								+ result.getFailure() + ", remaining thread: " + taskReporter.getThreadCount());
+
+						taskReporter.increaseGcmCount(result.getSuccess(), result.getFailure());
+
+						if (taskReporter.decrementSubTaskCount() == 0) {
+							getLogger().debug("Hermes2Push is done..................... ");
+						}
+						// TODO Remove error tokens
+					}
+				});
+			}
+		};
+
+		Callback<Throwable> failureCallback = new Callback<Throwable>() {
+
+			@Override
+			public void apply(Throwable cause) {
+				getLogger().error("An error occur when sending message: ", cause);
+				executor.submit(new Runnable() {
+
+					@Override
+					public void run() {
+						if (taskReporter.decrementSubTaskCount() == 0) {
+							getLogger().debug("Hermes2Push is done..................... ");
+						}
+					}
+				});
+			}
+		};
+
+		this.sender.send(message, recipients, callback, failureCallback);
 	}
 
 	@Override
-	public void push(Hermes2Notification notification) {
+	public void push(Hermes2Notification notification, PushTaskReporter taskReporter) {
 		List<List<String>> batchs = new ArrayList<>();
 
 		int partitionCount = notification.getRecipients().size() / this.clientConfig.getInteger(BATCH_CHUNK_SIZE);
@@ -70,33 +104,30 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 			batchs.get(index++ % partitionCount).add(recipient);
 		}
 
-		CountDownLatch doneSignal = new CountDownLatch(partitionCount);
-		String title = notification.getTitle();
 		Builder messageBuilder = new Message.Builder().addData(F.MESSAGE, notification.getMessage());
+
+		String title = notification.getTitle();
 		if (title != null) {
 			messageBuilder.addData(F.TITLE, title);
 		}
-		final Message message = messageBuilder.build();
-		for (List<String> recipients : batchs) {
-			this.executor.submit(new Runnable() {
 
-				@Override
-				public void run() {
-					try {
-						Hermes2GCMService.this._send(message, recipients);
-					} catch (IOException e) {
-						getLogger().error("Unable to send message: ", e);
-					} finally {
-						doneSignal.countDown();
-					}
-				}
-			});
+		if (notification.getBadge() > 0) {
+			messageBuilder.addData(F.BADGE, String.valueOf(notification.getBadge()));
 		}
 
-		try {
-			doneSignal.await();
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
+		String messgeId = notification.getMessageId();
+		if (messgeId != null) {
+			messageBuilder.addData(F.MESSAGE_ID, messgeId);
+		}
+
+		if (batchs.size() == 0) {
+			taskReporter.decrementSubTaskCount();
+		} else {
+			taskReporter.addAndGetSubTaskCount(batchs.size() - 1);
+			Message message = messageBuilder.build();
+			for (List<String> recipients : batchs) {
+				Hermes2GCMService.this.asyncSend(message, recipients, taskReporter);
+			}
 		}
 	}
 

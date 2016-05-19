@@ -9,12 +9,11 @@ public class F extends Fields {
 
 	public static final String SERVICE = "service";
 	public static final String PROPERTIES = "properties";
-
-	public static final String DATABASE_NAME = "hermes2";
-	public static final String DATABASE_DEVICE_TOKEN = "device_token";
-	public static final String DATABASE_DEVICE_TOKEN_SANDBOX = "device_token_sandbox";
-	public static final String DATABASE_SERVICE_AUTHENTICATOR = "service_authenticator";
-
+	
+	public static final String DATABASE_NAME="databaseName";
+	
+	public static final String MODEL_MAPPING_FILE="modelMappingFile";
+	
 	public static final String CLIENT_CONFIG = "clientConfig";
 	public static final String APPLICATION_CONFIG = "applicationConfig";
 	public static final String LOOP_GROUP_NUM_THREADS = "loopGroupNumThreads";
@@ -32,4 +31,32 @@ public class F extends Fields {
 	public static final String DEVICE_TOKENS = "deviceTokens";
 	public static final String TARGETS = "targets";
 	public static final String TOPIC = "topic";
+
+	public static final String _ID = "_id";
+	public static final String GCM = "gcm";
+	public static final String APNS = "apns";
+	public static final String TOTAL_COUNT = "totalCount";
+	public static final String GCM_COUNT = "gcmCount";
+	public static final String APNS_COUNT = "apnsCount";
+	public static final String GCM_SUCCESS_COUNT = "gcmSuccessCount";
+	public static final String APNS_SUCCESS_COUNT = "apnsSuccessCount";
+	public static final String GCM_FAILURE_COUNT = "gcmFailureCount";
+	public static final String APNS_FAILURE_COUNT = "apnsFailureCount";
+	public static final String TOTAL_FAILURE_COUNT = "totalFailureCount";
+	public static final String START_TIME = "startTime";
+	public static final String LAST_MODIFIED = "lastModified";
+	public static final String IS_DONE = "isDone";
+	public static final String MESSAGE_ID="messageId";
+	public static final String PUSH_REQUEST_DATA="requestData";
+	public static final String BADGE = "badge";
+	
+	public static final String TO="to";
+	public static final String CONTENT="content";
+	public static final String SMS_TYPE="sms_type";
+	public static final String BRAND_NAME="brandname";
+	public static final String INVALID_PHONE="invalidPhone";
+	public static final String TOTAL_PRICE="totalPrice";
+	public static final String TOTAL_SMS="totalSMS";
+	public static final String TRAN_ID="tranId";
+	public static final String CODE="code";
 }

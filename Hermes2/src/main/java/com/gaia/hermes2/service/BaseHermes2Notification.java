@@ -11,6 +11,7 @@ public class BaseHermes2Notification implements Hermes2Notification {
 	private String message;
 	private int badge;
 	private String title;
+	private String messageId;
 
 	public BaseHermes2Notification(Collection<String> recipients, String message) {
 		this.addRecipients(recipients);
@@ -23,6 +24,13 @@ public class BaseHermes2Notification implements Hermes2Notification {
 		this.setTitle(title);
 	}
 
+	public BaseHermes2Notification(Collection<String> recipients, String message, String title, String messageId) {
+		this.addRecipients(recipients);
+		this.setMessage(message);
+		this.setTitle(title);
+		this.setMessageId(messageId);
+	}
+	
 	public void addRecipients(Collection<String> recipients) {
 		if (recipients != null) {
 			this.recipients.addAll(recipients);
@@ -79,4 +87,13 @@ public class BaseHermes2Notification implements Hermes2Notification {
 		this.title = title;
 	}
 
+	public String getMessageId() {
+		return messageId;
+	}
+
+	public void setMessageId(String messageId) {
+		this.messageId = messageId;
+	}	
+
+	
 }

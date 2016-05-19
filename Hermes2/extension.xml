@@ -8,7 +8,7 @@
 			</endpoint>
 			<credentials>
 				<entry>
-					<username>root</username>
+					<username>local_admin</username>
 					<password>123456</password>
 					<authdb>admin</authdb>
 				</entry>
@@ -77,8 +77,8 @@
 				<variable name="hermes2HandlerName" type="String">hermes2_register_handler</variable>
 				<variable name="appId" type="String">b03e405c-2cf8-4fc0-ba85-62cfd612f552</variable>
 				<variable name="isSandbox" type="boolean">true</variable>
-				<!-- <variable name="gcmAuthenticatorId" type="String"></variable> -->
-				<!-- <variable name="apnsAuthenticatorId" type="String"></variable> -->
+				<variable name="gcmAuthenticatorId" type="String">d51a8708-4c15-471d-9781-0d39a57ac575</variable>
+				<variable name="apnsAuthenticatorId" type="String">883bf5a1-5773-49dd-a1d5-3eae4a3c46a5</variable>
 			</variables>
 		</handler>
 		<handler>
@@ -88,6 +88,8 @@
 				<gateway>hermes2_http_register_gateway</gateway>
 			</bind>
 			<variables>
+				<variable name="databaseName" type="String">hermes2</variable>
+				<variable name="modelMappingFile" type="String">conf/model_mappings.properties</variable>
 				<variable name="mongodb" type="String">hermes2_mongodb</variable>
 				<variable name="commands" type="puobject">
 					<variable name="addAuthenticator" type="String">com.gaia.hermes2.processor.register.AddAuthenticatorProcessor</variable>
@@ -103,10 +105,13 @@
 				<gateway>hermes2_http_push_gateway</gateway>
 			</bind>
 			<variables>
+				<variable name="databaseName" type="String">hermes2</variable>
 				<variable name="mongodb" type="String">hermes2_mongodb</variable>
+				<variable name="modelMappingFile" type="String">conf/model_mappings.properties</variable>
 				<variable name="serviceConfigFile" type="String">conf/services.properties</variable>
 				<variable name="commands" type="puobject">
 					<variable name="push" type="String">com.gaia.hermes2.processor.push.PushNotificationProcessor</variable>
+					<variable name="checkTask" type="String">com.gaia.hermes2.processor.push.CheckPushStateProcessor</variable>
 				</variable>
 			</variables>
 		</handler>

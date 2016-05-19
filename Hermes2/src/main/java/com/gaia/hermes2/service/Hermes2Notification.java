@@ -17,4 +17,7 @@ public interface Hermes2Notification {
 	int getBadge();
 
 	String getTitle();
+	
+	String getMessageId();
+	
 }

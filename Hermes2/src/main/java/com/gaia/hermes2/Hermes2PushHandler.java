@@ -7,25 +7,22 @@ import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.bson.Document;
-import org.bson.types.Binary;
-
+import com.gaia.hermes2.bean.ServiceAuthenticatorBean;
+import com.gaia.hermes2.model.ServiceAuthenticatorModel;
 import com.gaia.hermes2.processor.Hermes2ProcessorResponseData;
 import com.gaia.hermes2.service.Hermes2PushNotificationService;
+import com.gaia.hermes2.statics.DBF;
 import com.gaia.hermes2.statics.F;
 import com.mario.entity.impl.BaseMessageHandler;
 import com.mario.entity.message.Message;
 import com.mario.entity.message.impl.BaseMessage;
 import com.mario.statics.Fields;
 import com.mongodb.MongoClient;
-import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
-import com.mongodb.client.MongoDatabase;
 import com.nhb.common.data.PuElement;
 import com.nhb.common.data.PuObject;
 import com.nhb.common.data.PuObjectRO;
 import com.nhb.common.data.PuValue;
+import com.nhb.common.db.models.ModelFactory;
 import com.nhb.common.utils.FileSystemUtils;
 import com.nhb.strategy.CommandController;
 import com.nhb.strategy.CommandProcessor;
@@ -37,19 +34,24 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 	private final Map<String, Properties> serviceProperties = new ConcurrentHashMap<>();
 	private final Map<String, Class<? extends Hermes2PushNotificationService>> serviceHandleClasses = new ConcurrentHashMap<>();
 
-	private MongoDatabase database;
 	private final CommandController controller = new CommandController();
+	private ModelFactory modelFactory;
+	private MongoClient mongoClient;
 
 	@Override
 	public void init(PuObjectRO initParams) {
 
 		getLogger().debug("Initializing Hermes2Handler with params: " + initParams);
 
-		MongoClient mongoClient = getApi().getMongoClient(initParams.getString(F.MONGODB));
+		mongoClient = getApi().getMongoClient(initParams.getString(F.MONGODB));
 
 		if (mongoClient == null) {
 			throw new RuntimeException("MongoDB config cannot be found");
 		}
+
+		String dbName = initParams.getString(F.DATABASE_NAME, DBF.MONGO_DATABASE_NAME);
+
+		initModelFactory(initParams.getString(F.MODEL_MAPPING_FILE, null), dbName);
 
 		Properties serviceConfig = new Properties();
 		String serviceConfigFile = initParams.getString(F.SERVICE_CONFIG_FILE);
@@ -62,8 +64,25 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 		}
 
 		this.initServices(serviceConfig);
-		this.initDatabase(mongoClient.getDatabase(F.DATABASE_NAME));
+
 		this.initController(initParams.getPuObject(F.COMMANDS));
+	}
+
+	private void initModelFactory(String filePath, String databaseName) {
+		modelFactory = new ModelFactory();
+		modelFactory.setMongoClient(this.mongoClient);
+		modelFactory.setClassLoader(this.getClass().getClassLoader());
+		modelFactory.setEnvironmentVariable(F.DATABASE_NAME, databaseName);
+		if (filePath != null) {
+			Properties props = new Properties();
+			try (InputStream is = new FileInputStream(
+					FileSystemUtils.createAbsolutePathFrom("extensions", getExtensionName(), filePath))) {
+				props.load(is);
+				modelFactory.addClassImplMapping(props);
+			} catch (Exception e) {
+				throw new RuntimeException("An error occurs while loading model mapping file", e);
+			}
+		}
 	}
 
 	private void initController(PuObject commands) {
@@ -106,10 +125,6 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 				serviceProperties.put(serviceType, properties);
 			}
 		}
-	}
-
-	private void initDatabase(MongoDatabase mongoDatabase) {
-		this.database = mongoDatabase;
 	}
 
 	@Override
@@ -156,10 +171,6 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 		return new PuValue("Missing command");
 	}
 
-	public MongoDatabase getDatabase() {
-		return this.database;
-	}
-
 	private final Map<String, Hermes2PushNotificationService> pushNotificationServices = new ConcurrentHashMap<>();
 
 	public Hermes2PushNotificationService getPushService(String authenticatorId) {
@@ -167,15 +178,11 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 			getLogger().debug("Service is not existing for authenticator id " + authenticatorId);
 			synchronized (pushNotificationServices) {
 				if (!pushNotificationServices.containsKey(authenticatorId)) {
-					MongoCollection<Document> collection = this.database
-							.getCollection(F.DATABASE_SERVICE_AUTHENTICATOR);
-					Document criteria = new Document();
-					criteria.append(F.ID, authenticatorId);
-					FindIterable<Document> cursor = collection.find(criteria);
-					MongoCursor<Document> it = cursor.iterator();
-					if (it.hasNext()) {
-						Document row = it.next();
-						String serviceType = row.getString(F.SERVICE_TYPE);
+					ServiceAuthenticatorModel model = getModelFactory()
+							.getModel(ServiceAuthenticatorModel.class.getName());
+					ServiceAuthenticatorBean bean = model.findById(authenticatorId);
+					if (bean != null) {
+						String serviceType = bean.getServiceType();
 						Class<? extends Hermes2PushNotificationService> clazz = this.serviceHandleClasses
 								.get(serviceType);
 						if (clazz != null) {
@@ -190,16 +197,7 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 										clientConfig.setString(key, props.getProperty(key));
 									}
 								}
-								for (String key : row.keySet()) {
-									if (key.equals("_id")) {
-										continue;
-									} else if (key.equals(F.AUTHENTICATOR)) {
-										Binary bytes = row.get(F.AUTHENTICATOR, Binary.class);
-										applicationConfig.setRaw(F.AUTHENTICATOR, bytes.getData());
-									} else {
-										applicationConfig.set(key, row.get(key));
-									}
-								}
+								applicationConfig = bean.toPuObject();
 								PuObject initParams = new PuObject();
 								initParams.setPuObject(F.CLIENT_CONFIG, clientConfig);
 								initParams.setPuObject(F.APPLICATION_CONFIG, applicationConfig);
@@ -215,6 +213,7 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 							}
 						}
 					}
+
 				}
 			}
 		}
@@ -232,4 +231,13 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 			}
 		}
 	}
+
+	public ModelFactory getModelFactory() {
+		return modelFactory;
+	}
+
+	public void setModelFactory(ModelFactory modelFactory) {
+		this.modelFactory = modelFactory;
+	}
+
 }

@@ -3,10 +3,15 @@ package com.gaia.hermes2.service.apns;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import com.gaia.hermes2.processor.PushTaskReporter;
 import com.gaia.hermes2.service.Hermes2AbstractPushNotificationService;
 import com.gaia.hermes2.service.Hermes2Notification;
 import com.gaia.hermes2.statics.F;
@@ -14,6 +19,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.nhb.common.data.PuObject;
 import com.nhb.common.data.PuObjectRO;
 import com.relayrides.pushy.apns.ApnsClient;
+import com.relayrides.pushy.apns.PushNotificationResponse;
 import com.relayrides.pushy.apns.util.ApnsPayloadBuilder;
 
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -40,12 +46,11 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 	private PuObject applicationConfig;
 	private NioEventLoopGroup nioEventLoopGroup;
 
-	private final ExecutorService executor = Executors.newCachedThreadPool();
+	private ExecutorService executor;
 	private ApnsClientPool apnsClientPool;
 
 	@Override
 	public void init(PuObjectRO initParams) {
-		getLogger().debug("Initializing {} with properties: {}", Hermes2APNSService.class.getName(), initParams);
 		this.clientConfig = initParams.getPuObject(F.CLIENT_CONFIG);
 		this.applicationConfig = initParams.getPuObject(F.APPLICATION_CONFIG);
 		this.nioEventLoopGroup = new NioEventLoopGroup(
@@ -54,6 +59,8 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 						.build());
 
 		this.apnsClientPool = new ApnsClientPool(clientConfig, applicationConfig, nioEventLoopGroup);
+		this.executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
+				.setNameFormat("Hermes2APNS " + applicationConfig.getString(F.ID) + " Executor #%d").build());
 
 	}
 
@@ -77,7 +84,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 	}
 
 	@Override
-	public void push(Hermes2Notification notification) {
+	public void push(Hermes2Notification notification, PushTaskReporter taskReporter) {
 
 		final ApnsPayloadBuilder payloadBuilder = new ApnsPayloadBuilder();
 		payloadBuilder.setAlertBody(notification.getMessage());
@@ -101,7 +108,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 			try {
 				clients.add(this.apnsClientPool.borrowObject());
 			} catch (Exception e) {
-				break;
+				getLogger().debug("apns error: " + e.getMessage());
 			}
 		}
 
@@ -110,8 +117,12 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 		final int numMessagePerClient = Double
 				.valueOf(Math.ceil(Double.valueOf(recipients.length) / Double.valueOf(clients.size()))).intValue();
 
-		getLogger().debug("will send {} message(s) per client", numMessagePerClient);
+		getLogger().debug("---> Will send {} message(s) per client", numMessagePerClient);
 		final String topic = this.applicationConfig.getString(F.TOPIC, null);
+
+		final List<Future<PushNotificationResponse<NotificationItem>>> responseFutures = new CopyOnWriteArrayList<>();
+		final CountDownLatch sendingDoneSignal = new CountDownLatch(clients.size());
+
 		for (int i = 0; i < clients.size(); i++) {
 			final int index = i;
 			this.executor.submit(new Runnable() {
@@ -124,17 +135,71 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 					try {
 						int startId = clientId * numMessagePerClient;
 						int endId = startId + numMessagePerClient;
-						getLogger().debug("start sending from token {} to {}", startId, endId);
+						getLogger().debug("Start sending from token {} to {}", startId, endId);
 						for (int i = startId; i < endId; i++) {
 							NotificationItem notificationItem = new NotificationItem(recipients[i], payload, topic);
-							this.client.sendNotification(notificationItem);
+							Future<PushNotificationResponse<NotificationItem>> future = this.client
+									.sendNotification(notificationItem);
+							responseFutures.add(future);
 						}
+					} catch (Exception e) {
+						getLogger().error("Error while sending apns message", e);
 					} finally {
 						apnsClientPool.returnObject(this.client);
+						sendingDoneSignal.countDown();
 					}
 				}
 			});
 		}
+
+		this.executor.execute(new Runnable() {
+			public void run() {
+
+				try {
+					sendingDoneSignal.await();
+				} catch (InterruptedException e) {
+					// FIXME how to deal with interrupted exception
+					getLogger().error("Thread interupted while in waiting for sending to success");
+					throw new RuntimeException(e);
+				}
+				getLogger().debug("Push Apns was completed, start to get response");
+				int successCount = 0;
+				int failureCount = 0;
+				List<String> failureTokens = new ArrayList<>();
+				for (Future<PushNotificationResponse<NotificationItem>> future : responseFutures) {
+					boolean success = false;
+					try {
+						PushNotificationResponse<NotificationItem> response = future.get();
+						success = response.isAccepted();
+						if (!success) {
+							if (response.getRejectionReason().equalsIgnoreCase("Unregistered")) {
+								failureTokens.add(response.getPushNotification().getToken());
+							}
+						}
+					} catch (InterruptedException | ExecutionException e) {
+						getLogger().error("Error while trying to get response", e);
+					}
+					if (success) {
+						successCount++;
+					} else {
+						failureCount++;
+					}
+				}
+
+				taskReporter.increaseApnsCount(successCount, failureCount);
+				getLogger().debug("ApnsPush get {} success, {} failure at thread {}", successCount, failureCount,
+						taskReporter.getThreadCount());
+				if (taskReporter.decrementSubTaskCount() == 0) {
+					getLogger().debug("Hermes2Push is done .....................");
+				}
+				int removedCount = taskReporter.removeTokens(failureTokens);
+				if (removedCount > 0) {
+					getLogger().debug("Trying to remove {} Unregisted tokens, success is {}", failureTokens.size(),
+							removedCount);
+
+				}
+			}
+		});
 	}
 
 }
