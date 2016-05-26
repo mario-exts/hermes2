@@ -8,9 +8,12 @@ import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.gaia.hermes2.bean.ServiceAuthenticatorBean;
+import com.gaia.hermes2.bean.SmsServiceBean;
 import com.gaia.hermes2.model.ServiceAuthenticatorModel;
+import com.gaia.hermes2.model.impl.SmsServiceModelImpl;
 import com.gaia.hermes2.processor.Hermes2ProcessorResponseData;
 import com.gaia.hermes2.service.Hermes2PushNotificationService;
+import com.gaia.hermes2.service.Hermes2SmsService;
 import com.gaia.hermes2.statics.DBF;
 import com.gaia.hermes2.statics.F;
 import com.mario.entity.impl.BaseMessageHandler;
@@ -33,7 +36,7 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 
 	private final Map<String, Properties> serviceProperties = new ConcurrentHashMap<>();
 	private final Map<String, Class<? extends Hermes2PushNotificationService>> serviceHandleClasses = new ConcurrentHashMap<>();
-
+	private final Map<String, Class<? extends Hermes2SmsService>> smsServiceHandleClasses = new ConcurrentHashMap<>();
 	private final CommandController controller = new CommandController();
 	private ModelFactory modelFactory;
 	private MongoClient mongoClient;
@@ -123,10 +126,18 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 					throw new RuntimeException(e);
 				}
 				serviceProperties.put(serviceType, properties);
+			}else if(key.startsWith(F.SMS_SERVICE)){
+				try {
+					this.smsServiceHandleClasses.put(serviceType, (Class<? extends Hermes2SmsService>) this
+							.getClass().getClassLoader().loadClass(serviceConfig.getProperty(key)));
+				} catch (Exception e) {
+					throw new RuntimeException("Class not found or invalid type for service handler: " + key + " --> "
+							+ serviceConfig.getProperty(key), e);
+				}
 			}
 		}
 	}
-
+	
 	@Override
 	public PuElement handle(Message message) {
 		getLogger().debug("Handling message: " + message.getData());
@@ -172,7 +183,6 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 	}
 
 	private final Map<String, Hermes2PushNotificationService> pushNotificationServices = new ConcurrentHashMap<>();
-
 	public Hermes2PushNotificationService getPushService(String authenticatorId) {
 		if (!pushNotificationServices.containsKey(authenticatorId)) {
 			getLogger().debug("Service is not existing for authenticator id " + authenticatorId);
@@ -219,7 +229,65 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 		}
 		return pushNotificationServices.get(authenticatorId);
 	}
+	
+	private Map<String,Hermes2SmsService> smsServices=new ConcurrentHashMap<>();
+	
+	public Hermes2SmsService getSmsService(String serviceId){
+		if (!smsServices.containsKey(serviceId)) {
+			getLogger().debug("Service is not existing for authenticator id " + serviceId);
+			synchronized (smsServices) {
+				if (!smsServices.containsKey(serviceId)) {
+					SmsServiceModelImpl model = getModelFactory()
+							.getModel(SmsServiceModelImpl.class.getName());
+					SmsServiceBean bean = model.findById(serviceId);
+					if (bean != null) {
+						String serviceType = bean.getServiceName();
+						Class<? extends Hermes2SmsService> clazz = this.smsServiceHandleClasses
+								.get(serviceType);
+						if (clazz != null) {
+							try {
+								Hermes2SmsService instance = clazz.newInstance();
+								PuObject applicationConfig = new PuObject();
+								PuObject clientConfig = new PuObject();
+								if (this.serviceProperties.containsKey(serviceType)) {
+									Properties props = this.serviceProperties.get(serviceType);
+									for (Object obj : props.keySet()) {
+										String key = String.valueOf(obj);
+										clientConfig.setString(key, props.getProperty(key));
+									}
+								}
+								applicationConfig = bean.toPuObject();
+								PuObject initParams = new PuObject();
+								initParams.setPuObject(F.CLIENT_CONFIG, clientConfig);
+								initParams.setPuObject(F.APPLICATION_CONFIG, applicationConfig);
+								instance.init(initParams);
 
+								this.smsServices.put(serviceId, instance);
+
+							} catch (InstantiationException | IllegalAccessException e) {
+								getLogger().error(
+										"Error while creating new service instance for service type " + serviceType, e);
+								throw new RuntimeException(
+										"Error while creating new service instance for service type " + serviceType, e);
+							}
+						}
+					}
+
+				}
+			}
+		}
+		return smsServices.get(serviceId);
+	}
+	
+	public Hermes2SmsService getDefaultSmsService(){
+		SmsServiceModelImpl model=getModelFactory().getModel(SmsServiceModelImpl.class.getName());
+		SmsServiceBean bean = model.findDefault();
+		if(bean!=null){
+			return getSmsService(bean.getId());
+		}
+		return null;
+	}
+	
 	@Override
 	public void destroy() throws Exception {
 		for (Hermes2PushNotificationService service : this.pushNotificationServices.values()) {

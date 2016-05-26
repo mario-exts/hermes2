@@ -2,6 +2,7 @@ package com.gaia.hermes2.model.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bson.Document;
 
@@ -17,19 +18,28 @@ import com.mongodb.client.model.WriteModel;
 
 public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceTokenModel {
 	private MongoCollection<Document> collection;
-	private boolean useSandbox = false;
+	private MongoCollection<Document> collectionSandbox;
+	private AtomicBoolean useSandbox = new AtomicBoolean(false);
 
 	protected MongoCollection<Document> getCollection() {
-		if (this.collection == null) {
-			synchronized (this) {
-				if (useSandbox) {
-					this.collection = this.getDatabase().getCollection(DBF.DATABASE_DEVICE_TOKEN_SANDBOX);
-				} else {
-					this.collection = this.getDatabase().getCollection(DBF.DATABASE_DEVICE_TOKEN);
+		if(this.useSandbox.get()){
+			if (this.collectionSandbox == null) {
+				synchronized (this) {
+					this.collectionSandbox = this.getDatabase().getCollection(DBF.DATABASE_DEVICE_TOKEN_SANDBOX);
+					return this.collectionSandbox;
 				}
 			}
+			return this.collectionSandbox;
+		}else{
+			if (this.collection == null) {
+				synchronized (this) {
+					this.collection = this.getDatabase().getCollection(DBF.DATABASE_DEVICE_TOKEN);
+					return this.collection;
+				}
+			}
+			return this.collection;
 		}
-		return this.collection;
+		
 	}
 
 	@Override
@@ -66,7 +76,7 @@ public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceT
 
 	@Override
 	public void setSandbox(boolean useSandbox) {
-		this.useSandbox = useSandbox;
+		this.useSandbox.set(useSandbox);
 	}
 
 	@Override

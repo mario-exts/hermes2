@@ -13,7 +13,5 @@ public interface Hermes2PushNotificationService extends Closeable {
 
 	String getName();
 	
-//	void push(Hermes2Notification notification);
-			
 	void push(Hermes2Notification notification,PushTaskReporter taskReporter);
 }

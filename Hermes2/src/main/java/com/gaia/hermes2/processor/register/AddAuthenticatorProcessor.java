@@ -26,12 +26,20 @@ public class AddAuthenticatorProcessor extends Hermes2BaseProcessor {
 			String password = data.getString(F.PASSWORD, "");
 			boolean sandbox = data.getBoolean(F.SANDBOX, false);
 			String topic = data.getString(F.TOPIC, null);
+			String bundleId = data.getString(F.BUNDLE_ID, null);
 
 			String checksum = SHAEncryptor.sha512Hex(new String(authenticator) + String.valueOf(sandbox));
 			ServiceAuthenticatorBean bean = serviceModel.findByAppIdAndChecksum(applicationId, checksum);
 			if (bean != null) {
 				return PuObject.fromObject(new MapTuple<>(F.STATUS, 1, F.DESCRIPTION, "Authenticator is existing",
 						F.AUTHENTICATOR_ID, bean.getId()));
+			} else if (bundleId != null) {
+				bean = serviceModel.findByBundleId(bundleId, sandbox);
+				if (bean != null) {
+					return PuObject.fromObject(
+							new MapTuple<>(F.STATUS, 1, F.DESCRIPTION, "BundleId for Authenticator is existing",
+									F.AUTHENTICATOR_ID, bean.getId(), F.BUNDLE_ID, bundleId));
+				}
 			}
 			bean = new ServiceAuthenticatorBean();
 			bean.setId(UUID.randomUUID().toString());
@@ -42,7 +50,7 @@ public class AddAuthenticatorProcessor extends Hermes2BaseProcessor {
 			bean.setChecksum(checksum);
 			bean.setSandbox(sandbox);
 			bean.setTopic(topic);
-
+			bean.setBundleId(bundleId);
 			serviceModel.insert(bean);
 			return PuObject.fromObject(new MapTuple<>(F.STATUS, 0, F.AUTHENTICATOR_ID, bean.getId()));
 		}

@@ -3,9 +3,12 @@ package com.gaia.hermes2.processor;
 import com.gaia.hermes2.Hermes2PushHandler;
 import com.gaia.hermes2.Hermes2RegisterHandler;
 import com.gaia.hermes2.model.DeviceTokenModel;
+import com.gaia.hermes2.model.PushSmsModel;
 import com.gaia.hermes2.model.PushTaskModel;
 import com.gaia.hermes2.model.ServiceAuthenticatorModel;
+import com.gaia.hermes2.model.SmsServiceModel;
 import com.gaia.hermes2.service.Hermes2PushNotificationService;
+import com.gaia.hermes2.service.Hermes2SmsService;
 import com.gaia.hermes2.statics.F;
 import com.mario.entity.MessageHandler;
 import com.mario.entity.message.Message;
@@ -21,6 +24,8 @@ public abstract class Hermes2BaseProcessor extends BaseLoggable implements Comma
 	private DeviceTokenModel deviceTokenModel;
 	private PushTaskModel pushTaskModel;
 	private ServiceAuthenticatorModel authenticatorModel;
+	private PushSmsModel pushSmsModel;
+	private SmsServiceModel smsServiceModel;
 	private MessageHandler handler;
 
 	@Override
@@ -44,6 +49,15 @@ public abstract class Hermes2BaseProcessor extends BaseLoggable implements Comma
 		if(this.handler instanceof Hermes2PushHandler){
 			return ((Hermes2PushHandler) handler).getPushService(authenticatorId);
 		}
+		return null;
+		
+	}
+	
+	protected Hermes2SmsService getDefaultSmsService(){
+		if(this.handler instanceof Hermes2PushHandler){
+			return ((Hermes2PushHandler) handler).getDefaultSmsService();
+		}
+		getLogger().debug("return null");
 		return null;
 		
 	}
@@ -78,6 +92,36 @@ public abstract class Hermes2BaseProcessor extends BaseLoggable implements Comma
 		return this.pushTaskModel;
 	}
 
+	public PushSmsModel getPushSmsModel() {
+		if (this.pushSmsModel == null) {
+			synchronized (this) {
+				if (this.pushSmsModel == null) {
+					this.pushSmsModel = ((Hermes2PushHandler) handler).getModelFactory()
+							.getModel(PushSmsModel.class.getName());
+				}
+			}
+		}
+		return this.pushSmsModel;
+	}
+	
+	public SmsServiceModel getSmsServiceModel() {
+		if (this.smsServiceModel == null) {
+			synchronized (this) {
+				if (this.smsServiceModel == null) {
+					if (this.handler instanceof Hermes2PushHandler) {
+						this.smsServiceModel = ((Hermes2PushHandler) handler).getModelFactory()
+								.getModel(SmsServiceModel.class.getName());
+					} else {
+						this.smsServiceModel = ((Hermes2RegisterHandler) handler).getModelFactory()
+								.getModel(SmsServiceModel.class.getName());
+					}
+					
+				}
+			}
+		}
+		return this.smsServiceModel;
+	}
+	
 	public ServiceAuthenticatorModel getAuthenticatorModel() {
 		if (this.authenticatorModel == null) {
 			synchronized (this) {
@@ -102,5 +146,7 @@ public abstract class Hermes2BaseProcessor extends BaseLoggable implements Comma
 	protected boolean isFromRegisterHandler(){
 		return this.handler instanceof Hermes2RegisterHandler ?true:false;
 	}
+	
+	
 
 }
