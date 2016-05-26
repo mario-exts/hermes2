@@ -44,7 +44,7 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 	}
 
 	private void asyncSend(Message message, List<String> recipients, PushTaskReporter taskReporter) {
-		getLogger().debug("sending message {} to {} recipients", message, recipients.size());
+		getLogger().debug("sending message {} recipients", recipients.size());
 
 		Callback<MulticastResult> callback = new Callback<MulticastResult>() {
 

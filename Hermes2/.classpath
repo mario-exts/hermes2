@@ -4,15 +4,11 @@
 	<classpathentry kind="src" path="src/test/java"/>
 	<classpathentry kind="src" path="src/gcm/java"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
-	<classpathentry kind="lib" path="lib/pushy-0.5.2.jar" sourcepath="/Users/bachden/Working/Libraries/pushy/v0.5.2/pushy-0.5.2-sources.jar">
-		<attributes>
-			<attribute name="javadoc_location" value="jar:file:/Users/bachden/Working/Libraries/pushy/v0.5.2/pushy-0.5.2-javadoc.jar!/"/>
-		</attributes>
-	</classpathentry>
 	<classpathentry combineaccessrules="false" kind="src" path="/NHBCommon"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/SLF4J_API"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/NHBCommonMessaging"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/Mario"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Lombok"/>
+	<classpathentry kind="lib" path="lib/pushy-0.7.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
