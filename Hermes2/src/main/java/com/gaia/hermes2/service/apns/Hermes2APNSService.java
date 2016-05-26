@@ -108,7 +108,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 			try {
 				clients.add(this.apnsClientPool.borrowObject());
 			} catch (Exception e) {
-				getLogger().debug("apns error: " + e.getMessage());
+				getLogger().error("apns error: " + e.getMessage(), e);
 			}
 		}
 
@@ -135,9 +135,12 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 					try {
 						int startId = clientId * numMessagePerClient;
 						int endId = startId + numMessagePerClient;
+						endId = Math.min(endId, recipients.length);
 						getLogger().debug("Start sending from token {} to {}", startId, endId);
 						for (int i = startId; i < endId; i++) {
-							NotificationItem notificationItem = new NotificationItem(recipients[i], payload, topic);
+							NotificationItem notificationItem = topic != null
+									? new NotificationItem(recipients[i], payload, topic)
+									: new NotificationItem(recipients[i], payload);
 							Future<PushNotificationResponse<NotificationItem>> future = this.client
 									.sendNotification(notificationItem);
 							responseFutures.add(future);
@@ -170,6 +173,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 					boolean success = false;
 					try {
 						PushNotificationResponse<NotificationItem> response = future.get();
+						getLogger().debug("Got response from APNS: " + response);
 						success = response.isAccepted();
 						if (!success) {
 							if (response.getRejectionReason().equalsIgnoreCase("Unregistered")) {
