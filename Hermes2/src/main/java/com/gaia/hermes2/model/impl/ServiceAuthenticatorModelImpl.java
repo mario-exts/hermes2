@@ -54,4 +54,17 @@ public class ServiceAuthenticatorModelImpl extends HermesAbstractModel implement
 		return null;
 	}
 
+	@Override
+	public ServiceAuthenticatorBean findByBundleId(String bundleId, boolean sandbox) {
+		Document match = new Document(DBF.BUNDLE_ID, bundleId);
+		match.append(DBF.SANDBOX, sandbox);
+		FindIterable<Document> found = getCollection().find(match);
+		if (found.first() != null) {
+			return ServiceAuthenticatorBean.fromDocument(found.first());
+		}
+		return null;
+	}
+	
+	
+
 }

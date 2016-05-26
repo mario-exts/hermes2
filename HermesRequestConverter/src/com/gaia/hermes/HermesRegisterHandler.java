@@ -73,7 +73,7 @@ public class HermesRegisterHandler extends BaseMessageHandler {
 						puo.setString(F.SERVICE_TYPE, serviceType);
 					}
 				}
-				puo.setBoolean(F.SANDBOX, this.isSandbox);
+				
 				puo.setString(F.COMMAND, "registerToken");
 				puo.setString(F.APPLICATION_ID, this.applicationId);
 				getLogger().debug("Register token: " + puo);

@@ -2,6 +2,7 @@ package com.gaia.hermes2.model.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bson.Document;
 
@@ -18,10 +19,10 @@ import com.mongodb.client.model.WriteModel;
 public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceTokenModel {
 	private MongoCollection<Document> collection;
 	private MongoCollection<Document> collectionSandbox;
-	private boolean useSandbox = false;
+	private AtomicBoolean useSandbox = new AtomicBoolean(false);
 
 	protected MongoCollection<Document> getCollection() {
-		if(this.useSandbox){
+		if(this.useSandbox.get()){
 			if (this.collectionSandbox == null) {
 				synchronized (this) {
 					this.collectionSandbox = this.getDatabase().getCollection(DBF.DATABASE_DEVICE_TOKEN_SANDBOX);
@@ -75,7 +76,7 @@ public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceT
 
 	@Override
 	public void setSandbox(boolean useSandbox) {
-		this.useSandbox = useSandbox;
+		this.useSandbox.set(useSandbox);
 	}
 
 	@Override
