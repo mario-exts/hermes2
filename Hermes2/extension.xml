@@ -95,6 +95,7 @@
 					<variable name="addAuthenticator" type="String">com.gaia.hermes2.processor.register.AddAuthenticatorProcessor</variable>
 					<variable name="registerToken" type="String">com.gaia.hermes2.processor.register.RegisterTokenProcessor</variable>
 					<variable name="batchRegisterToken" type="String">com.gaia.hermes2.processor.register.BatchRegisterTokenProcessor</variable>
+					<variable name="addSmsService" type="String">com.gaia.hermes2.processor.register.AddSmsServiceProcessor</variable>
 				</variable>
 			</variables>
 		</handler>
@@ -112,6 +113,7 @@
 				<variable name="commands" type="puobject">
 					<variable name="push" type="String">com.gaia.hermes2.processor.push.PushNotificationProcessor</variable>
 					<variable name="checkTask" type="String">com.gaia.hermes2.processor.push.CheckPushStateProcessor</variable>
+					<variable name="sendSms" type="String">com.gaia.hermes2.processor.push.SendSmsProcessor</variable>
 				</variable>
 			</variables>
 		</handler>

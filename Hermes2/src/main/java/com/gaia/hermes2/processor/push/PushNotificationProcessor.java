@@ -40,7 +40,7 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 		if (data.variableExists(F.SANDBOX) && data.getBoolean(F.SANDBOX)) {
 			deviceModel.setSandbox(true);
 		}
-		List<DeviceTokenBean> beans = null;
+		List<DeviceTokenBean> beans =new ArrayList<>();
 
 		String applicationId = data.getString(F.APPLICATION_ID);
 
@@ -49,9 +49,6 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 			DeviceTokenBean bean = deviceModel.findByToken(token);
 			if (bean != null) {
 				getLogger().debug("Found device token: " + bean.getToken());
-				if (beans == null) {
-					beans = new ArrayList<>();
-				}
 				beans.add(bean);
 			} else {
 				getLogger().warn("Unable to find DeviceToken for tokenId: " + token);
@@ -81,6 +78,7 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 			}
 
 		}
+		
 		PushTaskModel pushTaskModel = getPushTaskModel();
 		PushTaskReporter taskReporter = new PushTaskReporter(pushTaskModel);
 		taskReporter.setTokenModel(getDeviceTokenModel());
