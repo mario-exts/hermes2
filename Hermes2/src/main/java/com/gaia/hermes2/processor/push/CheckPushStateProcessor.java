@@ -12,15 +12,13 @@ public class CheckPushStateProcessor extends Hermes2BaseProcessor {
 
 	@Override
 	protected PuElement process(PuObjectRO data) {
-		PushTaskModel model=getPushTaskModel();
-		if (model!=null) {
-			if (data.variableExists(F.ID)) {
-				String taskId = data.getString(F.ID);
-				PushTaskBean bean = model.findByTaskId(taskId);
-				if (bean != null) {
-					getLogger().debug("start checkTask with ID: "+taskId+"  is success");
-					return bean.toPuObject();
-				}
+		if (data.variableExists(F.ID)) {
+			PushTaskModel model = getPushTaskModel();
+			String taskId = data.getString(F.ID);
+			PushTaskBean bean = model.findByTaskId(taskId);
+			if (bean != null) {
+				getLogger().debug("start checkTask with ID: " + taskId + "  is success");
+				return bean.toPuObject();
 			}
 		}
 		PuObject puo = new PuObject();

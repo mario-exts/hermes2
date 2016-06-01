@@ -21,10 +21,10 @@ public class RegisterTokenProcessor extends Hermes2BaseProcessor {
 	protected PuElement process(PuObjectRO data) {
 		if (this.isFromRegisterHandler()) {
 
-			boolean sandbox = data.getBoolean(F.SANDBOX, false);
 			DeviceTokenModel deviceModel = getDeviceTokenModel();
+
+			boolean sandbox = data.getBoolean(F.SANDBOX, false);
 			String applicationId = data.getString(F.APPLICATION_ID, null);
-			String authenticatorId = data.getString(F.AUTHENTICATOR_ID, null);
 			String token = data.getString(F.TOKEN, null);
 			String serviceType = data.getString(F.SERVICE_TYPE);
 			String bundleId = data.getString(F.BUNDLE_ID, null);
@@ -33,16 +33,19 @@ public class RegisterTokenProcessor extends Hermes2BaseProcessor {
 				return new PuValue("Parameters is missing");
 			}
 
-			if (bundleId != null) {
+			String authenticatorId = data.getString(F.AUTHENTICATOR_ID, null);
+			if (authenticatorId == null && bundleId != null) {
 				ServiceAuthenticatorModel authModel = getAuthenticatorModel();
 				ServiceAuthenticatorBean authBean = authModel.findByBundleId(bundleId, sandbox);
 				if (authBean != null) {
 					authenticatorId = authBean.getId();
 				}
 			}
+
 			if (authenticatorId == null) {
 				return new PuValue("Service authenticator not found");
 			}
+
 			String checksum = SHAEncryptor.sha512Hex(applicationId + token + authenticatorId);
 			DeviceTokenBean bean = deviceModel.findByChecksum(checksum);
 			if (bean != null) {

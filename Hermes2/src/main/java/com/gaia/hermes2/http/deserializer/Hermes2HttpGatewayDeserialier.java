@@ -84,7 +84,6 @@ public class Hermes2HttpGatewayDeserialier extends HttpMessageDeserializer {
 				}
 			}
 			message.setData(params);
-			getLogger().debug("----> parsed request: " + params);
 		} else {
 			throw new NullPointerException("Cannot parse null request");
 		}
