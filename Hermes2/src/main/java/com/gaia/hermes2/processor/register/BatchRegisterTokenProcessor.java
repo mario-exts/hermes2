@@ -7,10 +7,10 @@ import java.util.UUID;
 import com.gaia.hermes2.bean.DeviceTokenBean;
 import com.gaia.hermes2.model.DeviceTokenModel;
 import com.gaia.hermes2.processor.Hermes2BaseProcessor;
+import com.gaia.hermes2.processor.Hermes2Result;
 import com.gaia.hermes2.statics.F;
-import com.nhb.common.data.MapTuple;
+import com.gaia.hermes2.statics.Status;
 import com.nhb.common.data.PuArray;
-import com.nhb.common.data.PuElement;
 import com.nhb.common.data.PuObject;
 import com.nhb.common.data.PuObjectRO;
 import com.nhb.common.data.PuValue;
@@ -19,7 +19,7 @@ import com.nhb.common.encrypt.sha.SHAEncryptor;
 public class BatchRegisterTokenProcessor extends Hermes2BaseProcessor {
 
 	@Override
-	protected PuElement process(PuObjectRO data) {
+	protected Hermes2Result process(PuObjectRO data) {
 		if (this.isFromRegisterHandler()) {
 			boolean sandbox = data.getBoolean(F.SANDBOX, false);
 			DeviceTokenModel deviceModel = getDeviceTokenModel();
@@ -49,7 +49,7 @@ public class BatchRegisterTokenProcessor extends Hermes2BaseProcessor {
 
 			deviceModel.insert(beans);
 			String message = beans.size() + " tokends was inserted";
-			return PuObject.fromObject(new MapTuple<>(F.STATUS, 0, F.MESSAGE, message));
+			return new Hermes2Result(Status.SUCCESS,message);
 		}
 
 		return null;

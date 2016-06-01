@@ -7,28 +7,26 @@ import java.util.UUID;
 import com.gaia.hermes2.bean.PushSmsBean;
 import com.gaia.hermes2.model.PushSmsModel;
 import com.gaia.hermes2.processor.Hermes2BaseProcessor;
+import com.gaia.hermes2.processor.Hermes2Result;
 import com.gaia.hermes2.service.Hermes2SmsService;
+import com.gaia.hermes2.service.sms.SmsEnvelop;
 import com.gaia.hermes2.statics.F;
+import com.gaia.hermes2.statics.Status;
 import com.nhb.common.data.MapTuple;
 import com.nhb.common.data.PuArray;
 import com.nhb.common.data.PuDataType;
-import com.nhb.common.data.PuElement;
 import com.nhb.common.data.PuObject;
 import com.nhb.common.data.PuObjectRO;
 import com.nhb.common.data.PuValue;
 
-import vn.speedsms.client.SmsEnvelop;
 import vn.speedsms.client.enums.SpeedSMSType;
 
 public class SendSmsProcessor extends Hermes2BaseProcessor {
 
 	@Override
-	protected PuElement process(PuObjectRO data) {
-		PuObject response = new PuObject();
-
+	protected Hermes2Result process(PuObjectRO data) {
 		if (!data.variableExists(F.MESSAGE)) {
-			response.set(F.STATUS, "Thiếu tham số message");
-			return response;
+			return new Hermes2Result(Status.PARAMS_MISSING);
 		}
 		String message = data.getString(F.MESSAGE);
 		Set<String> recipients = new HashSet<>();
@@ -44,12 +42,10 @@ public class SendSmsProcessor extends Hermes2BaseProcessor {
 					recipients.add(val.getString());
 				}
 			} else {
-				response.set("status", "Tham số phones không đúng");
-				return response;
+				return new Hermes2Result(Status.WRONG_PARAMS);
 			}
 		} else {
-			response.set("status", "Thiếu tham số phone");
-			return response;
+			return new Hermes2Result(Status.PARAMS_MISSING);
 		}
 		if(data.variableExists(F.TYPE)){
 			smsType=data.getInteger(F.TYPE);
@@ -84,9 +80,9 @@ public class SendSmsProcessor extends Hermes2BaseProcessor {
 		}else{
 			getLogger().debug("can not get SMS service");
 		}
-		PuObject result = PuObject.fromObject(new MapTuple<>(F.STATUS, 0, F.TARGETS, recipients.size()));
+		PuObject result = PuObject.fromObject(new MapTuple<>(F.TARGETS, recipients.size()));
 		result.set(F.ID, bean.getId());
-		return result;
+		return new Hermes2Result(Status.SUCCESS, result);
 	}
 
 }

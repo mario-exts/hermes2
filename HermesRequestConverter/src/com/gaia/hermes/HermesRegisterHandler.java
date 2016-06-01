@@ -19,7 +19,7 @@ public class HermesRegisterHandler extends BaseMessageHandler {
 	private static final String APNS_AUTHENTICATOR_ID = "apnsAuthenticatorId";
 	private static final String GCM_AUTHENTICATOR_ID = "gcmAuthenticatorId";
 	private static final String WP_AUTHENTICATOR_ID = "wpAuthenticatorId";
-	private static final String IS_SANDBOX = "isSandbox";
+//	private static final String IS_SANDBOX = "isSandbox";
 
 	private String hermes2HandlerName;
 	private String applicationId;
@@ -27,7 +27,7 @@ public class HermesRegisterHandler extends BaseMessageHandler {
 	private String gcmAuthenticatorId;
 	private String wpAuthenticatorId;
 
-	private boolean isSandbox = false;
+//	private boolean isSandbox = false;
 
 	@Override
 	public void init(PuObjectRO initParams) {
@@ -38,7 +38,7 @@ public class HermesRegisterHandler extends BaseMessageHandler {
 		this.gcmAuthenticatorId = initParams.getString(GCM_AUTHENTICATOR_ID, null);
 		this.wpAuthenticatorId = initParams.getString(WP_AUTHENTICATOR_ID, null);
 
-		this.isSandbox = initParams.getBoolean(IS_SANDBOX, false);
+//		this.isSandbox = initParams.getBoolean(IS_SANDBOX, false);
 	}
 
 	@Override

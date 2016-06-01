@@ -7,18 +7,18 @@ import com.gaia.hermes2.bean.ServiceAuthenticatorBean;
 import com.gaia.hermes2.model.DeviceTokenModel;
 import com.gaia.hermes2.model.ServiceAuthenticatorModel;
 import com.gaia.hermes2.processor.Hermes2BaseProcessor;
+import com.gaia.hermes2.processor.Hermes2Result;
 import com.gaia.hermes2.statics.F;
+import com.gaia.hermes2.statics.Status;
 import com.nhb.common.data.MapTuple;
-import com.nhb.common.data.PuElement;
 import com.nhb.common.data.PuObject;
 import com.nhb.common.data.PuObjectRO;
-import com.nhb.common.data.PuValue;
 import com.nhb.common.encrypt.sha.SHAEncryptor;
 
 public class RegisterTokenProcessor extends Hermes2BaseProcessor {
 
 	@Override
-	protected PuElement process(PuObjectRO data) {
+	protected Hermes2Result process(PuObjectRO data) {
 		if (this.isFromRegisterHandler()) {
 			boolean sandbox = data.getBoolean(F.SANDBOX, false);
 			DeviceTokenModel deviceModel = getDeviceTokenModel();
@@ -28,7 +28,7 @@ public class RegisterTokenProcessor extends Hermes2BaseProcessor {
 			String serviceType = data.getString(F.SERVICE_TYPE);
 			String bundleId = data.getString(F.BUNDLE_ID, null);
 			if (token == null || applicationId == null) {
-				return new PuValue("Parameters is missing");
+				return new Hermes2Result(Status.PARAMS_MISSING);
 			}
 
 			if (bundleId != null) {
@@ -39,13 +39,14 @@ public class RegisterTokenProcessor extends Hermes2BaseProcessor {
 				}
 			}
 			if (authenticatorId == null) {
-				return new PuValue("Service authenticator not found");
+				return new Hermes2Result(Status.AUTHENTICATOR_NOT_FOUND);
 			}
 			String checksum = SHAEncryptor.sha512Hex(applicationId + token + authenticatorId);
 			DeviceTokenBean bean = deviceModel.findByChecksum(checksum);
 			if (bean != null) {
-				return PuObject
-						.fromObject(new MapTuple<>(F.STATUS, 1, F.DESCRIPTION, "Duplicate token", F.ID, bean.getId()));
+				PuObject result = new PuObject();
+				result.set(F.ID, bean.getId());
+				return new Hermes2Result(Status.DUPLICATE_TOKEN, result);
 			}
 
 			bean = new DeviceTokenBean();
@@ -58,8 +59,9 @@ public class RegisterTokenProcessor extends Hermes2BaseProcessor {
 			bean.setSandbox(sandbox);
 			deviceModel.insert(bean);
 
-			return PuObject.fromObject(new MapTuple<>(F.STATUS, 0, F.ID, bean.getId(), F.DESCRIPTION,
-					"The ID use for push notification later"));
+			PuObject result = PuObject.fromObject(
+					new MapTuple<>(F.ID, bean.getId(), F.DESCRIPTION, "The ID use for push notification later"));
+			return new Hermes2Result(Status.SUCCESS, result);
 		}
 		return null;
 	}

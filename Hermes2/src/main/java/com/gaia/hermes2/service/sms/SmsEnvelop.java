@@ -1,4 +1,4 @@
-package vn.speedsms.client;
+package com.gaia.hermes2.service.sms;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;

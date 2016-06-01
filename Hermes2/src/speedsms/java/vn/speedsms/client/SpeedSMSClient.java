@@ -2,6 +2,8 @@ package vn.speedsms.client;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.http.client.methods.RequestBuilder;
 
@@ -52,18 +54,16 @@ public class SpeedSMSClient extends BaseLoggable implements Closeable {
 		return builder;
 	}
 
-	public SpeedSMSSendingFuture send(SmsEnvelop envelop) {
-		assert envelop.getContent() != null;
-		assert envelop.getRecipients() != null && envelop.getRecipients().size() > 0;
-		assert envelop.getSmsType() != null;
-		SpeedSMSType type=envelop.getSmsType();
-		String brandName=envelop.getBrandName();
+	public SpeedSMSSendingFuture send(String content, List<String> repicients, SpeedSMSType type, String brandName) {
+		assert content != null;
+		assert repicients != null && repicients.size() > 0;
+		assert type != null;
 		if (type == SpeedSMSType.BRAND_NAME && (brandName == null || brandName.trim().length() == 0)) {
 			throw new RuntimeException("Brand name must be set while SMS Type == BRAND_NAME (type == 3)");
 		}
 		PuObject params = new PuObject();
-		params.set(TO, envelop.getRecipients());
-		params.set(CONTENT, envelop.getContent());
+		params.set(TO, repicients);
+		params.set(CONTENT, content);
 		params.set(SMS_TYPE, type.getType());
 		if (type == SpeedSMSType.BRAND_NAME) {
 			params.set(BRAND_NAME, brandName);
@@ -72,13 +72,13 @@ public class SpeedSMSClient extends BaseLoggable implements Closeable {
 		return new SpeedSMSSendingFuture(this.httpClientHelper.executeAsync(createRequestBuilder(), params));
 	}
 
-//	public SpeedSMSSendingFuture send(String content, String[] repicients, SpeedSMSType type, String brandName) {
-//		List<String> listRepicients = new ArrayList<>();
-//		for (String str : repicients) {
-//			listRepicients.add(str);
-//		}
-//		return this.send(content, listRepicients, type, brandName);
-//	}
+	public SpeedSMSSendingFuture send(String content, String[] repicients, SpeedSMSType type, String brandName) {
+		List<String> listRepicients = new ArrayList<>();
+		for (String str : repicients) {
+			listRepicients.add(str);
+		}
+		return this.send(content, listRepicients, type, brandName);
+	}
 
 	public String getAccessToken() {
 		return this.accessToken;

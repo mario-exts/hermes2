@@ -17,13 +17,13 @@ import com.gaia.hermes2.bean.PushTaskBean;
 import com.gaia.hermes2.model.DeviceTokenModel;
 import com.gaia.hermes2.model.PushTaskModel;
 import com.gaia.hermes2.processor.Hermes2BaseProcessor;
+import com.gaia.hermes2.processor.Hermes2Result;
 import com.gaia.hermes2.processor.PushTaskReporter;
 import com.gaia.hermes2.service.BaseHermes2Notification;
 import com.gaia.hermes2.service.Hermes2PushNotificationService;
 import com.gaia.hermes2.statics.F;
+import com.gaia.hermes2.statics.Status;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.nhb.common.data.MapTuple;
-import com.nhb.common.data.PuElement;
 import com.nhb.common.data.PuObject;
 import com.nhb.common.data.PuObjectRO;
 import com.nhb.common.data.PuValue;
@@ -34,7 +34,7 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 	private AtomicInteger counter = new AtomicInteger(0);
 
 	@Override
-	protected PuElement process(PuObjectRO data) {
+	protected Hermes2Result process(PuObjectRO data) {
 
 		DeviceTokenModel deviceModel = getDeviceTokenModel();
 		boolean sandbox=data.getBoolean(F.SANDBOX,false);
@@ -144,10 +144,12 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 				getLogger().warn("Unable to get notification service for authenticator id " + entry.getKey());
 			}
 		});
-
-		PuObject result = PuObject.fromObject(new MapTuple<>(F.STATUS, 0, F.TARGETS, countByService));
+		
+		PuObject result=new PuObject();
 		result.set(F.ID, bean.getId());
-		return result;
+		result.set(F.GCM, gcmCount);
+		result.set(F.APNS, apnsCount);
+		return new Hermes2Result(Status.SUCCESS,result);
 
 	}
 }

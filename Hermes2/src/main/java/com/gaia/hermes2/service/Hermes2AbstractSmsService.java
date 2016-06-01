@@ -1,9 +1,8 @@
 package com.gaia.hermes2.service;
 
+import com.gaia.hermes2.service.sms.SmsEnvelop;
 import com.nhb.common.BaseLoggable;
 import com.nhb.common.data.PuObjectRO;
-
-import vn.speedsms.client.SmsEnvelop;
 
 public abstract class Hermes2AbstractSmsService extends BaseLoggable implements Hermes2SmsService{
 	private String name;
