@@ -45,24 +45,23 @@ public abstract class Hermes2BaseProcessor extends BaseLoggable implements Comma
 	// data);
 	protected abstract PuElement process(PuObjectRO data);
 
-	protected Hermes2PushNotificationService getPushService(String authenticatorId){
-		if(this.handler instanceof Hermes2PushHandler){
+	protected Hermes2PushNotificationService getPushService(String authenticatorId) {
+		if (this.handler instanceof Hermes2PushHandler) {
 			return ((Hermes2PushHandler) handler).getPushService(authenticatorId);
 		}
 		return null;
-		
+
 	}
-	
-	protected Hermes2SmsService getDefaultSmsService(){
-		if(this.handler instanceof Hermes2PushHandler){
+
+	protected Hermes2SmsService getDefaultSmsService() {
+		if (this.handler instanceof Hermes2PushHandler) {
 			return ((Hermes2PushHandler) handler).getDefaultSmsService();
 		}
 		getLogger().debug("return null");
 		return null;
-		
+
 	}
-	
-	
+
 	protected DeviceTokenModel getDeviceTokenModel() {
 		if (this.deviceTokenModel == null) {
 			synchronized (this) {
@@ -103,7 +102,7 @@ public abstract class Hermes2BaseProcessor extends BaseLoggable implements Comma
 		}
 		return this.pushSmsModel;
 	}
-	
+
 	public SmsServiceModel getSmsServiceModel() {
 		if (this.smsServiceModel == null) {
 			synchronized (this) {
@@ -115,13 +114,13 @@ public abstract class Hermes2BaseProcessor extends BaseLoggable implements Comma
 						this.smsServiceModel = ((Hermes2RegisterHandler) handler).getModelFactory()
 								.getModel(SmsServiceModel.class.getName());
 					}
-					
+
 				}
 			}
 		}
 		return this.smsServiceModel;
 	}
-	
+
 	public ServiceAuthenticatorModel getAuthenticatorModel() {
 		if (this.authenticatorModel == null) {
 			synchronized (this) {
@@ -138,15 +137,13 @@ public abstract class Hermes2BaseProcessor extends BaseLoggable implements Comma
 		}
 		return this.authenticatorModel;
 	}
-	
-	protected boolean isFromPushHandler(){
-		return this.handler instanceof Hermes2PushHandler ?true:false;
+
+	protected boolean isFromPushHandler() {
+		return this.handler instanceof Hermes2PushHandler ? true : false;
 	}
-	
-	protected boolean isFromRegisterHandler(){
-		return this.handler instanceof Hermes2RegisterHandler ?true:false;
+
+	protected boolean isFromRegisterHandler() {
+		return this.handler instanceof Hermes2RegisterHandler ? true : false;
 	}
-	
-	
 
 }

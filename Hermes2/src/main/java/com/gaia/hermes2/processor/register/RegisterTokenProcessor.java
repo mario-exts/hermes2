@@ -20,6 +20,7 @@ public class RegisterTokenProcessor extends Hermes2BaseProcessor {
 	@Override
 	protected PuElement process(PuObjectRO data) {
 		if (this.isFromRegisterHandler()) {
+
 			boolean sandbox = data.getBoolean(F.SANDBOX, false);
 			DeviceTokenModel deviceModel = getDeviceTokenModel();
 			deviceModel.setSandbox(sandbox);
@@ -28,6 +29,7 @@ public class RegisterTokenProcessor extends Hermes2BaseProcessor {
 			String token = data.getString(F.TOKEN, null);
 			String serviceType = data.getString(F.SERVICE_TYPE);
 			String bundleId = data.getString(F.BUNDLE_ID, null);
+
 			if (token == null || applicationId == null) {
 				return new PuValue("Parameters is missing");
 			}

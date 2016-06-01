@@ -1,30 +1,31 @@
 package com.gaia.hermes2.service.sms;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import com.gaia.hermes2.service.Hermes2AbstractSmsService;
 import com.gaia.hermes2.statics.F;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.nhb.common.async.Callback;
 import com.nhb.common.data.PuObject;
 import com.nhb.common.data.PuObjectRO;
 
 public class Hermes2SmsServiceImpl extends Hermes2AbstractSmsService {
-	private ExecutorService executor;
-	private PuObjectRO clientConfig;
+	// private ExecutorService executor;
+	// private PuObjectRO clientConfig;
+
 	private PuObjectRO applicationConfig;
 	private SmsAsyncSender asyncSender;
 
 	@Override
 	public void init(PuObjectRO properties) {
-		this.clientConfig = properties.getPuObject(F.CLIENT_CONFIG, new PuObject());
+		// this.clientConfig = properties.getPuObject(F.CLIENT_CONFIG, new
+		// PuObject());
 		this.applicationConfig = properties.getPuObject(F.APPLICATION_CONFIG, new PuObject());
 		getLogger().debug("appconfig: " + applicationConfig);
 		this.asyncSender = new SmsAsyncSender(applicationConfig.getString(F.ACCESS_TOKEN));
-		this.executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
-				.setNameFormat("Hermes2GCM " + applicationConfig.getString(F.ID) + " #%d").build());
+		// this.executor = Executors.newCachedThreadPool(new
+		// ThreadFactoryBuilder()
+		// .setNameFormat("Hermes2GCM " + applicationConfig.getString(F.ID) + "
+		// #%d").build());
 	}
 
 	@Override

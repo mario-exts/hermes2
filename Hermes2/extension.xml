@@ -8,7 +8,7 @@
 			</endpoint>
 			<credentials>
 				<entry>
-					<username>local_admin</username>
+					<username>root</username>
 					<password>123456</password>
 					<authdb>admin</authdb>
 				</entry>

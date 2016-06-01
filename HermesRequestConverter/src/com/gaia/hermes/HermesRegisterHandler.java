@@ -19,15 +19,12 @@ public class HermesRegisterHandler extends BaseMessageHandler {
 	private static final String APNS_AUTHENTICATOR_ID = "apnsAuthenticatorId";
 	private static final String GCM_AUTHENTICATOR_ID = "gcmAuthenticatorId";
 	private static final String WP_AUTHENTICATOR_ID = "wpAuthenticatorId";
-	private static final String IS_SANDBOX = "isSandbox";
 
 	private String hermes2HandlerName;
 	private String applicationId;
 	private String apnsAuthenticatorId;
 	private String gcmAuthenticatorId;
 	private String wpAuthenticatorId;
-
-	private boolean isSandbox = false;
 
 	@Override
 	public void init(PuObjectRO initParams) {
@@ -37,8 +34,6 @@ public class HermesRegisterHandler extends BaseMessageHandler {
 		this.apnsAuthenticatorId = initParams.getString(APNS_AUTHENTICATOR_ID, null);
 		this.gcmAuthenticatorId = initParams.getString(GCM_AUTHENTICATOR_ID, null);
 		this.wpAuthenticatorId = initParams.getString(WP_AUTHENTICATOR_ID, null);
-
-		this.isSandbox = initParams.getBoolean(IS_SANDBOX, false);
 	}
 
 	@Override
@@ -73,7 +68,7 @@ public class HermesRegisterHandler extends BaseMessageHandler {
 						puo.setString(F.SERVICE_TYPE, serviceType);
 					}
 				}
-				
+
 				puo.setString(F.COMMAND, "registerToken");
 				puo.setString(F.APPLICATION_ID, this.applicationId);
 				getLogger().debug("Register token: " + puo);

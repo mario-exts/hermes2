@@ -118,7 +118,8 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 				.valueOf(Math.ceil(Double.valueOf(recipients.length) / Double.valueOf(clients.size()))).intValue();
 
 		getLogger().debug("---> Will send {} message(s) per client", numMessagePerClient);
-		final String topic = this.applicationConfig.getString(F.TOPIC, null);
+		final String topic = this.applicationConfig.getString(F.TOPIC,
+				this.applicationConfig.getString(F.BUNDLE_ID, null));
 
 		final List<Future<PushNotificationResponse<NotificationItem>>> responseFutures = new CopyOnWriteArrayList<>();
 		final CountDownLatch sendingDoneSignal = new CountDownLatch(clients.size());
