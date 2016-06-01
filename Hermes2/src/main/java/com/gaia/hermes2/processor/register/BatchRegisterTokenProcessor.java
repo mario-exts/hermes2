@@ -23,8 +23,6 @@ public class BatchRegisterTokenProcessor extends Hermes2BaseProcessor {
 		if (this.isFromRegisterHandler()) {
 			boolean sandbox = data.getBoolean(F.SANDBOX, false);
 			DeviceTokenModel deviceModel = getDeviceTokenModel();
-			deviceModel.setSandbox(sandbox);
-
 			PuArray array = data.getPuArray(F.DEVICE_TOKENS);
 			List<DeviceTokenBean> beans = new ArrayList<>();
 
@@ -45,6 +43,7 @@ public class BatchRegisterTokenProcessor extends Hermes2BaseProcessor {
 				bean.setServiceType(serviceType);
 				bean.setAppId(applicationId);
 				bean.setAuthenticatorId(authenticatorId);
+				bean.setSandbox(sandbox);
 				beans.add(bean);
 			}
 

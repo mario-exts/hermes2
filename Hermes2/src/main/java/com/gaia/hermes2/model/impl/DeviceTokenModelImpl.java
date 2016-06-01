@@ -2,7 +2,6 @@ package com.gaia.hermes2.model.impl;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bson.Document;
 
@@ -18,27 +17,15 @@ import com.mongodb.client.model.WriteModel;
 
 public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceTokenModel {
 	private MongoCollection<Document> collection;
-	private MongoCollection<Document> collectionSandbox;
-	private AtomicBoolean useSandbox = new AtomicBoolean(false);
 
 	protected MongoCollection<Document> getCollection() {
-		if(this.useSandbox.get()){
-			if (this.collectionSandbox == null) {
-				synchronized (this) {
-					this.collectionSandbox = this.getDatabase().getCollection(DBF.DATABASE_DEVICE_TOKEN_SANDBOX);
-					return this.collectionSandbox;
-				}
+		if (this.collection == null) {
+			synchronized (this) {
+				this.collection = this.getDatabase().getCollection(DBF.DATABASE_DEVICE_TOKEN);
+				return this.collection;
 			}
-			return this.collectionSandbox;
-		}else{
-			if (this.collection == null) {
-				synchronized (this) {
-					this.collection = this.getDatabase().getCollection(DBF.DATABASE_DEVICE_TOKEN);
-					return this.collection;
-				}
-			}
-			return this.collection;
 		}
+		return this.collection;
 		
 	}
 
@@ -54,18 +41,9 @@ public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceT
 	}
 
 	@Override
-	public DeviceTokenBean findById(String id) {
-		Document match = new Document(DBF.ID, "id");
-		FindIterable<Document> found = getCollection().find(match);
-		if (found != null && found.first() != null) {
-			return DeviceTokenBean.fromDocument(found.first());
-		}
-		return null;
-	}
-
-	@Override
-	public List<DeviceTokenBean> findByAppId(String appId) {
+	public List<DeviceTokenBean> findByAppId(String appId,boolean sandbox) {
 		Document match = new Document(DBF.APPLICATION_ID, appId);
+		match.put(DBF.SANDBOX, sandbox);
 		FindIterable<Document> found = getCollection().find(match);
 		List<DeviceTokenBean> beans = new ArrayList<>();
 		for (Document doc : found) {
@@ -75,14 +53,10 @@ public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceT
 	}
 
 	@Override
-	public void setSandbox(boolean useSandbox) {
-		this.useSandbox.set(useSandbox);
-	}
-
-	@Override
-	public List<DeviceTokenBean> findByAppIdAndServiceType(String appId, String serviceType) {
+	public List<DeviceTokenBean> findByAppIdAndServiceType(String appId, String serviceType, boolean sandbox) {
 		Document match = new Document(DBF.APPLICATION_ID, appId);
 		match.append(DBF.SERVICE_TYPE, serviceType);
+		match.put(DBF.SANDBOX, sandbox);
 		FindIterable<Document> found = getCollection().find(match);
 		List<DeviceTokenBean> beans = new ArrayList<>();
 		for (Document doc : found) {
@@ -92,8 +66,9 @@ public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceT
 	}
 
 	@Override
-	public DeviceTokenBean findByToken(String tokenId) {
+	public DeviceTokenBean findByToken(String tokenId,boolean sandbox) {
 		Document match = new Document(DBF.ID, tokenId);
+		match.put(DBF.SANDBOX, sandbox);
 		FindIterable<Document> found = getCollection().find(match);
 		try (MongoCursor<Document> iterator = found.iterator()) {
 			if (iterator.hasNext()) {
