@@ -23,7 +23,6 @@ public class RegisterTokenProcessor extends Hermes2BaseProcessor {
 
 			boolean sandbox = data.getBoolean(F.SANDBOX, false);
 			DeviceTokenModel deviceModel = getDeviceTokenModel();
-			deviceModel.setSandbox(sandbox);
 			String applicationId = data.getString(F.APPLICATION_ID, null);
 			String authenticatorId = data.getString(F.AUTHENTICATOR_ID, null);
 			String token = data.getString(F.TOKEN, null);
@@ -58,7 +57,7 @@ public class RegisterTokenProcessor extends Hermes2BaseProcessor {
 			bean.setServiceType(serviceType);
 			bean.setAppId(applicationId);
 			bean.setAuthenticatorId(authenticatorId);
-
+			bean.setSandbox(sandbox);
 			deviceModel.insert(bean);
 
 			return PuObject.fromObject(new MapTuple<>(F.STATUS, 0, F.ID, bean.getId(), F.DESCRIPTION,

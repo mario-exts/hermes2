@@ -9,17 +9,14 @@ public interface DeviceTokenModel {
 
 	void insert(List<DeviceTokenBean> beans);
 
-	DeviceTokenBean findById(String id);
+	List<DeviceTokenBean> findByAppId(String appId,boolean sandbox);
 
-	List<DeviceTokenBean> findByAppId(String appId);
+	List<DeviceTokenBean> findByAppIdAndServiceType(String appId, String serviceType,boolean sandbox);
 
-	List<DeviceTokenBean> findByAppIdAndServiceType(String appId, String serviceType);
-
-	DeviceTokenBean findByToken(String token);
+	DeviceTokenBean findByToken(String token,boolean sandbox);
 
 	DeviceTokenBean findByChecksum(String checksum);
 	
 	int removeMulti(List<String> tokens);
 
-	void setSandbox(boolean useSandbox);
 }

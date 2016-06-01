@@ -19,6 +19,7 @@ public class DeviceTokenBean extends AbstractMongoBean{
 	private String checksum;
 	private String appId;
 	private String authenticatorId;
+	private boolean sandbox;
 	
 	@Override
 	public Document toDocument() {
@@ -29,7 +30,7 @@ public class DeviceTokenBean extends AbstractMongoBean{
 		doc.put(DBF.CHECKSUM, this.checksum);
 		doc.put(DBF.APPLICATION_ID, this.appId);
 		doc.put(DBF.AUTHENTICATOR_ID, this.authenticatorId);
-		
+		doc.put(DBF.SANDBOX, sandbox);
 		return doc;
 	}
 	
@@ -42,6 +43,7 @@ public class DeviceTokenBean extends AbstractMongoBean{
 		bean.setChecksum(doc.getString(DBF.CHECKSUM));
 		bean.setServiceType(doc.getString(DBF.SERVICE_TYPE));
 		bean.setToken(doc.getString(DBF.TOKEN));
+		bean.setSandbox(doc.getBoolean(DBF.SANDBOX, false));
 		return bean;
 	}
 	

@@ -8,7 +8,6 @@ import com.gaia.hermes2.bean.PushSmsBean;
 import com.gaia.hermes2.model.PushSmsModel;
 import com.gaia.hermes2.processor.Hermes2BaseProcessor;
 import com.gaia.hermes2.service.Hermes2SmsService;
-import com.gaia.hermes2.service.sms.SmsContent;
 import com.gaia.hermes2.statics.F;
 import com.nhb.common.data.MapTuple;
 import com.nhb.common.data.PuArray;
@@ -17,6 +16,9 @@ import com.nhb.common.data.PuElement;
 import com.nhb.common.data.PuObject;
 import com.nhb.common.data.PuObjectRO;
 import com.nhb.common.data.PuValue;
+
+import vn.speedsms.client.SmsEnvelop;
+import vn.speedsms.client.enums.SpeedSMSType;
 
 public class SendSmsProcessor extends Hermes2BaseProcessor {
 
@@ -51,9 +53,6 @@ public class SendSmsProcessor extends Hermes2BaseProcessor {
 		}
 		if(data.variableExists(F.TYPE)){
 			smsType=data.getInteger(F.TYPE);
-			if(smsType<1 || smsType>3){
-				smsType=SmsContent.QC;
-			}
 		}
 		if(data.variableExists(F.BRAND_NAME)){
 			brandName=data.getString(F.BRAND_NAME);
@@ -69,20 +68,19 @@ public class SendSmsProcessor extends Hermes2BaseProcessor {
 		PushSmsModel model = getPushSmsModel();
 		model.insert(bean);
 		
-		SmsContent content=new SmsContent();
-		content.setMessage(message);
-		content.setRecipients(recipients);
+		SmsEnvelop sms=new SmsEnvelop();
+		sms.setContent(message);
+		sms.setRecipients(recipients);
 		if(brandName!=null){
-			content.setBrandName(brandName);
+			sms.setBrandName(brandName);
+			sms.setSmsType(SpeedSMSType.BRAND_NAME);
 		}else{
-			if(smsType!=SmsContent.CSKH){
-				content.setSmsType(SmsContent.QC);
-			}
+			sms.setSmsType(SpeedSMSType.fromType(smsType));
 		}
 		
 		Hermes2SmsService service=getDefaultSmsService();
 		if(service!=null){
-			service.sendSms(content);
+			service.sendSms(sms);
 		}else{
 			getLogger().debug("can not get SMS service");
 		}
