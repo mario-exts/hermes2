@@ -12,9 +12,12 @@ import javax.servlet.http.Part;
 
 import org.apache.commons.io.IOUtils;
 
+import com.gaia.hermes2.statics.F;
 import com.mario.entity.message.MessageRW;
 import com.mario.entity.message.transcoder.http.HttpMessageDeserializer;
+import com.mario.exception.InvalidDataFormatException;
 import com.nhb.common.data.PuObject;
+import com.nhb.common.data.PuValue;
 
 public class Hermes2HttpGatewayDeserialier extends HttpMessageDeserializer {
 
@@ -36,7 +39,7 @@ public class Hermes2HttpGatewayDeserialier extends HttpMessageDeserializer {
 			}
 			if (request.getMethod().equalsIgnoreCase("post")) {
 				if (request.getContentType().toLowerCase().contains("multipart/form-data")) {
-					getLogger().debug("Posted data in multipart format");
+					getLogger().debug("Posted data is in multipart format");
 					try {
 						Collection<Part> parts = request.getParts();
 						for (Part part : parts) {
@@ -48,19 +51,41 @@ public class Hermes2HttpGatewayDeserialier extends HttpMessageDeserializer {
 						}
 					} catch (Exception e) {
 						getLogger().error("Error while get data from request", e);
-						throw new RuntimeException("Error while get data from request: " + e.getMessage(), e);
+						throw new InvalidDataFormatException("Error while get data from request: " + e.getMessage(), e);
 					}
 				} else {
 					getLogger().debug("Posted data in raw format, trying to parse as json");
-					try (InputStream is = request.getInputStream(); StringWriter sw = new StringWriter()) {
+					StringWriter sw = new StringWriter();
+					InputStream is = null;
+					try {
+						is = request.getInputStream();
 						IOUtils.copy(is, sw);
 						params.addAll(PuObject.fromJSON(sw.toString()));
-					} catch (IOException e) {
-						throw new RuntimeException(e);
+					} catch (IOException ex) {
+						throw new RuntimeException(ex);
+					} catch (Exception e) {
+						if (is != null) {
+							params.set(F.BODY, new PuValue(sw.toString()));
+						}
+					} finally {
+						try {
+							sw.close();
+						} catch (IOException e) {
+							throw new RuntimeException(e);
+						}
+						if (is != null) {
+							try {
+								is.close();
+							} catch (IOException e) {
+								throw new RuntimeException(e);
+							}
+						}
 					}
 				}
 			}
 			message.setData(params);
+		} else {
+			throw new NullPointerException("Cannot parse null request");
 		}
 	}
 

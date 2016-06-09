@@ -46,6 +46,15 @@
 				<!-- <include name="netty-tcnative*" />
 				<include name="pushy*" /> -->
 			</fileset>
+			<fileset dir="${lib-local}">
+				<exclude name="alpn*.jar" />
+				<exclude name="slf4j*" />
+				<exclude name="log4j*" />
+				<exclude name="gson*" />
+				<exclude name="netty*" />
+				<!-- <include name="netty-tcnative*" />
+							<include name="pushy*" /> -->
+			</fileset>
 		</copy>
 
 		<copy todir="${dist.ext}/${ant.project.name}" failonerror="false">
