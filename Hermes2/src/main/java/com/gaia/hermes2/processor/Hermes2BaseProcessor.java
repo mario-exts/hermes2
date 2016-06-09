@@ -51,6 +51,10 @@ public abstract class Hermes2BaseProcessor extends BaseLoggable implements Comma
 	// data);
 	protected abstract Hermes2Result process(PuObjectRO data);
 
+	protected Hermes2PushHandler getHandler(){
+		return (Hermes2PushHandler) this.handler;
+	}
+	
 	protected Hermes2PushNotificationService getPushService(String authenticatorId) {
 		if (this.handler instanceof Hermes2PushHandler) {
 			return ((Hermes2PushHandler) handler).getPushService(authenticatorId);

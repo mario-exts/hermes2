@@ -40,6 +40,8 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 	private final CommandController controller = new CommandController();
 	private ModelFactory modelFactory;
 	private MongoClient mongoClient;
+	private Map<String,Hermes2SmsService> smsServices=new ConcurrentHashMap<>();
+	private final Map<String, Hermes2PushNotificationService> pushNotificationServices = new ConcurrentHashMap<>();
 
 	@Override
 	public void init(PuObjectRO initParams) {
@@ -182,7 +184,7 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 		return new PuValue("Missing command");
 	}
 
-	private final Map<String, Hermes2PushNotificationService> pushNotificationServices = new ConcurrentHashMap<>();
+	
 	public Hermes2PushNotificationService getPushService(String authenticatorId) {
 		if (!pushNotificationServices.containsKey(authenticatorId)) {
 			getLogger().debug("Service is not existing for authenticator id " + authenticatorId);
@@ -230,7 +232,15 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 		return pushNotificationServices.get(authenticatorId);
 	}
 	
-	private Map<String,Hermes2SmsService> smsServices=new ConcurrentHashMap<>();
+	
+	public boolean removeServiceFromMap(String authenticatorId){
+		if(pushNotificationServices!=null && pushNotificationServices.containsKey(authenticatorId)){
+			pushNotificationServices.remove(authenticatorId);
+			return true;
+		}
+		return false;
+	}
+	
 	
 	public Hermes2SmsService getSmsService(String serviceId){
 		if (!smsServices.containsKey(serviceId)) {

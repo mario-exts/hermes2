@@ -114,6 +114,7 @@
 					<variable name="push" type="String">com.gaia.hermes2.processor.push.PushNotificationProcessor</variable>
 					<variable name="checkTask" type="String">com.gaia.hermes2.processor.push.CheckPushStateProcessor</variable>
 					<variable name="sendSms" type="String">com.gaia.hermes2.processor.push.SendSmsProcessor</variable>
+					<variable name="resetService" type="String">com.gaia.hermes2.processor.push.ResetServiceProcessor</variable>
 				</variable>
 			</variables>
 		</handler>
