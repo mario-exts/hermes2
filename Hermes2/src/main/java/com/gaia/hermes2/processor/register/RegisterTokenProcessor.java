@@ -34,9 +34,9 @@ public class RegisterTokenProcessor extends Hermes2BaseProcessor {
 			}
 
 			String authenticatorId = data.getString(F.AUTHENTICATOR_ID, null);
-			if (authenticatorId == null && bundleId != null) {
+			if (bundleId != null) {
 				ServiceAuthenticatorModel authModel = getAuthenticatorModel();
-				ServiceAuthenticatorBean authBean = authModel.findByBundleId(bundleId, sandbox);
+				ServiceAuthenticatorBean authBean = authModel.findByBundleId(bundleId, serviceType, sandbox);
 				if (authBean != null) {
 					authenticatorId = authBean.getId();
 				}
@@ -63,7 +63,7 @@ public class RegisterTokenProcessor extends Hermes2BaseProcessor {
 			bean.setAuthenticatorId(authenticatorId);
 			bean.setSandbox(sandbox);
 			deviceModel.insert(bean);
-
+			getLogger().debug("register token to " + serviceType + ", authenId: " + authenticatorId);
 			PuObject result = PuObject.fromObject(
 					new MapTuple<>(F.ID, bean.getId(), F.DESCRIPTION, "The ID use for push notification later"));
 			return new Hermes2Result(Status.SUCCESS, result);

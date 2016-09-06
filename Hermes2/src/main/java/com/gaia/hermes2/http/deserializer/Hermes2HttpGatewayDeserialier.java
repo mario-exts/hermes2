@@ -15,7 +15,6 @@ import org.apache.commons.io.IOUtils;
 import com.gaia.hermes2.statics.F;
 import com.mario.entity.message.MessageRW;
 import com.mario.entity.message.transcoder.http.HttpMessageDeserializer;
-import com.mario.exception.InvalidDataFormatException;
 import com.nhb.common.data.PuObject;
 import com.nhb.common.data.PuValue;
 
@@ -31,14 +30,9 @@ public class Hermes2HttpGatewayDeserialier extends HttpMessageDeserializer {
 		HttpServletRequest request = (HttpServletRequest) data;
 		if (request != null) {
 			PuObject params = new PuObject();
-			Enumeration<String> it = request.getParameterNames();
-			while (it.hasMoreElements()) {
-				String key = it.nextElement();
-				String value = request.getParameter(key);
-				params.set(key, value);
-			}
+			
 			if (request.getMethod().equalsIgnoreCase("post")) {
-				if (request.getContentType().toLowerCase().contains("multipart/form-data")) {
+				if (request.getContentType()!=null && request.getContentType().toLowerCase().contains("multipart/form-data")) {
 					getLogger().debug("Posted data is in multipart format");
 					try {
 						Collection<Part> parts = request.getParts();
@@ -51,7 +45,7 @@ public class Hermes2HttpGatewayDeserialier extends HttpMessageDeserializer {
 						}
 					} catch (Exception e) {
 						getLogger().error("Error while get data from request", e);
-						throw new InvalidDataFormatException("Error while get data from request: " + e.getMessage(), e);
+						throw new RuntimeException("Error while get data from request: " + e.getMessage(), e);
 					}
 				} else {
 					getLogger().debug("Posted data in raw format, trying to parse as json");
@@ -82,6 +76,12 @@ public class Hermes2HttpGatewayDeserialier extends HttpMessageDeserializer {
 						}
 					}
 				}
+			}
+			Enumeration<String> it = request.getParameterNames();
+			while (it.hasMoreElements()) {
+				String key = it.nextElement();
+				String value = request.getParameter(key);
+				params.set(key, value);
 			}
 			message.setData(params);
 		} else {

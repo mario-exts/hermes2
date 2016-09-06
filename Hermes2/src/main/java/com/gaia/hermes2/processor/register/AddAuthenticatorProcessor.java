@@ -36,7 +36,7 @@ public class AddAuthenticatorProcessor extends Hermes2BaseProcessor {
 				result.set(F.AUTHENTICATOR_ID, bean.getId());
 				return new Hermes2Result(Status.DUPLICATE_AUTHENTICATOR_ID,result);
 			} else if (bundleId != null) {
-				bean = serviceModel.findByBundleId(bundleId, sandbox);
+				bean = serviceModel.findByBundleId(bundleId,serviceType, sandbox);
 				if (bean != null) {
 					PuObject result= PuObject.fromObject(
 							new MapTuple<>(F.AUTHENTICATOR_ID, bean.getId(), F.BUNDLE_ID, bundleId));

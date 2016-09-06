@@ -1,5 +1,6 @@
 package com.gaia.hermes2.processor;
 
+import com.gaia.hermes2.Hermes2AdminHandler;
 import com.gaia.hermes2.Hermes2PushHandler;
 import com.gaia.hermes2.Hermes2RegisterHandler;
 import com.gaia.hermes2.model.DeviceTokenModel;
@@ -138,8 +139,11 @@ public abstract class Hermes2BaseProcessor extends BaseLoggable implements Comma
 					if (this.handler instanceof Hermes2PushHandler) {
 						this.authenticatorModel = ((Hermes2PushHandler) handler).getModelFactory()
 								.getModel(ServiceAuthenticatorModel.class.getName());
-					} else {
+					} else if(this.handler instanceof Hermes2RegisterHandler){
 						this.authenticatorModel = ((Hermes2RegisterHandler) handler).getModelFactory()
+								.getModel(ServiceAuthenticatorModel.class.getName());
+					}else{
+						this.authenticatorModel = ((Hermes2AdminHandler) handler).getModelFactory()
 								.getModel(ServiceAuthenticatorModel.class.getName());
 					}
 				}

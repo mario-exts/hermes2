@@ -65,7 +65,7 @@ public class ServiceAuthenticatorBean extends AbstractMongoBean {
 		}
 		return bean;
 	}
-
+	@Override
 	public PuObject toPuObject() {
 		PuObject puo = new PuObject();
 		puo.set(F.ID, this.id);
@@ -73,7 +73,7 @@ public class ServiceAuthenticatorBean extends AbstractMongoBean {
 		puo.set(F.SERVICE_TYPE, this.serviceType);
 		puo.setRaw(F.AUTHENTICATOR, this.authenticator);
 		puo.set(F.PASSWORD, this.password);
-		puo.set(F.CHECKSUM, this.checksum);
+//		puo.set(F.CHECKSUM, this.checksum);
 		puo.set(F.SANDBOX, this.sandbox);
 		if (topic != null) {
 			puo.set(F.TOPIC, this.topic);

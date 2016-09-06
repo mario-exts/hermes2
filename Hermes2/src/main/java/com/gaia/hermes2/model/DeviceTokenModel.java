@@ -9,11 +9,11 @@ public interface DeviceTokenModel {
 
 	void insert(List<DeviceTokenBean> beans);
 
-	List<DeviceTokenBean> findByAppId(String appId,boolean sandbox);
+	List<DeviceTokenBean> findByAppId(String appId, String authenticatorId,boolean sandbox);
 
-	List<DeviceTokenBean> findByAppIdAndServiceType(String appId, String serviceType,boolean sandbox);
+	List<DeviceTokenBean> findByAppIdAndServiceType(String appId, String serviceType, String authenticatorId,boolean sandbox);
 
-	DeviceTokenBean findByToken(String token,boolean sandbox);
+	DeviceTokenBean findByToken(String token, String authenticatorId, boolean sandbox);
 
 	DeviceTokenBean findByChecksum(String checksum);
 	

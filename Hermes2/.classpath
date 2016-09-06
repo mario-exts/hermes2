@@ -8,8 +8,8 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/NHBCommon"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/SLF4J_API"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/NHBCommonMessaging"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/Mario"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Lombok"/>
 	<classpathentry kind="lib" path="lib/pushy-0.7.2.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/Mario"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

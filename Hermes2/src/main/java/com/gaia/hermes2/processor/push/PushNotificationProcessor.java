@@ -14,8 +14,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.gaia.hermes2.bean.DeviceTokenBean;
 import com.gaia.hermes2.bean.PushTaskBean;
+import com.gaia.hermes2.bean.ServiceAuthenticatorBean;
 import com.gaia.hermes2.model.DeviceTokenModel;
 import com.gaia.hermes2.model.PushTaskModel;
+import com.gaia.hermes2.model.ServiceAuthenticatorModel;
 import com.gaia.hermes2.processor.Hermes2BaseProcessor;
 import com.gaia.hermes2.processor.Hermes2Result;
 import com.gaia.hermes2.processor.PushTaskReporter;
@@ -37,14 +39,24 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 	protected Hermes2Result process(PuObjectRO data) {
 
 		DeviceTokenModel deviceModel = getDeviceTokenModel();
-		boolean sandbox=data.getBoolean(F.SANDBOX,false);
-		List<DeviceTokenBean> beans =new ArrayList<>();
+		boolean sandbox = data.getBoolean(F.SANDBOX, false);
+		List<DeviceTokenBean> beans = new ArrayList<>();
 
 		String applicationId = data.getString(F.APPLICATION_ID);
+		String authenticatorId = null;
+		String serviceType = data.getString(F.SERVICE_TYPE, null);
+		if (data.variableExists(F.BUNDLE_ID)) {
+			ServiceAuthenticatorModel authenModel = getAuthenticatorModel();
+			ServiceAuthenticatorBean service = authenModel.findByBundleId(data.getString(F.BUNDLE_ID), serviceType,
+					sandbox);
+			if (service != null) {
+				authenticatorId = service.getId();
+			}
+		}
 
 		if (data.variableExists(F.TOKEN)) {
 			String token = data.getString(F.TOKEN);
-			DeviceTokenBean bean = deviceModel.findByToken(token,sandbox);
+			DeviceTokenBean bean = deviceModel.findByToken(token, authenticatorId, sandbox);
 			if (bean != null) {
 				getLogger().debug("Found device token: " + bean.getToken());
 				beans.add(bean);
@@ -52,11 +64,10 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 				getLogger().warn("Unable to find DeviceToken for tokenId: " + token);
 			}
 		} else {
-			if (data.variableExists(F.SERVICE_TYPE)) {
-				String serviceType = data.getString(F.SERVICE_TYPE);
-				beans = deviceModel.findByAppIdAndServiceType(applicationId, serviceType,sandbox);
+			if (serviceType != null) {
+				beans = deviceModel.findByAppIdAndServiceType(applicationId, serviceType, authenticatorId, sandbox);
 			} else {
-				beans = deviceModel.findByAppId(applicationId,sandbox);
+				beans = deviceModel.findByAppId(applicationId, authenticatorId, sandbox);
 			}
 		}
 
@@ -64,11 +75,11 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 
 		Map<String, Integer> countByService = new HashMap<>();
 		for (DeviceTokenBean bean : beans) {
-			String authenticatorId = bean.getAuthenticatorId();
-			if (!targetDevicesByService.containsKey(authenticatorId)) {
-				targetDevicesByService.put(authenticatorId, new HashSet<>());
+			String authenId = bean.getAuthenticatorId();
+			if (!targetDevicesByService.containsKey(authenId)) {
+				targetDevicesByService.put(authenId, new HashSet<>());
 			}
-			targetDevicesByService.get(authenticatorId).add(bean.getToken());
+			targetDevicesByService.get(authenId).add(bean.getToken());
 			if (!countByService.containsKey(bean.getServiceType())) {
 				countByService.put(bean.getServiceType(), 1);
 			} else {
@@ -76,7 +87,7 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 			}
 
 		}
-		
+
 		PushTaskModel pushTaskModel = getPushTaskModel();
 		PushTaskReporter taskReporter = new PushTaskReporter(pushTaskModel);
 		taskReporter.setTokenModel(getDeviceTokenModel());
@@ -144,12 +155,12 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 				getLogger().warn("Unable to get notification service for authenticator id " + entry.getKey());
 			}
 		});
-		
-		PuObject result=new PuObject();
+
+		PuObject result = new PuObject();
 		result.set(F.ID, bean.getId());
 		result.set(F.GCM, gcmCount);
 		result.set(F.APNS, apnsCount);
-		return new Hermes2Result(Status.SUCCESS,result);
+		return new Hermes2Result(Status.SUCCESS, result);
 
 	}
 }

@@ -174,9 +174,10 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 					boolean success = false;
 					try {
 						PushNotificationResponse<NotificationItem> response = future.get();
-						getLogger().debug("Got response from APNS: " + response);
+						getLogger().debug("Got response from APNS: " + response.getPushNotification().getToken()+"  "+response.getRejectionReason()+"  "+response.getPushNotification().getTopic());
 						success = response.isAccepted();
 						if (!success) {
+							getLogger().debug("APNS get response failed, resion: {}", response.getRejectionReason());
 							if (response.getRejectionReason().equalsIgnoreCase("Unregistered")) {
 								failureTokens.add(response.getPushNotification().getToken());
 							}

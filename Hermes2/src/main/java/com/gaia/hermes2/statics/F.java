@@ -18,6 +18,7 @@ public class F extends Fields {
 	public static final String APPLICATION_CONFIG = "applicationConfig";
 	public static final String LOOP_GROUP_NUM_THREADS = "loopGroupNumThreads";
 	public static final String AUTHENTICATOR = "authenticator";
+	public static final String AUTHENTICATORS = "authenticators";
 	public static final String APPLICATION_ID = "appId";
 	public static final String SERVICE_TYPE = "serviceType";
 	public static final String DESCRIPTION = "description";
