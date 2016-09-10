@@ -29,7 +29,7 @@
 			<name>hermes2_http_push_gateway</name>
 			<server>hermes2_http_server_8801</server>
 			<path>/hermes2/push</path>
-			<usemultipath>true</usemultipath>
+			<usemultipart>true</usemultipart>
 			<deserializer>com.gaia.hermes2.http.deserializer.Hermes2HttpGatewayDeserialier</deserializer>
 			<async>true</async>
 			<workerpool>
@@ -42,7 +42,7 @@
 			<name>hermes2_http_admin_gateway</name>
 			<server>hermes2_http_server_8801</server>
 			<path>/hermes2/admin</path>
-			<usemultipath>true</usemultipath>
+			<usemultipart>true</usemultipart>
 			<deserializer>com.gaia.hermes2.http.deserializer.Hermes2HttpGatewayDeserialier</deserializer>
 			<async>true</async>
 			<workerpool>
@@ -54,8 +54,8 @@
 		<http>
 			<name>hermes2_http_register_gateway</name>
 			<server>hermes2_http_server_8801</server>
-			<usemultipath>true</usemultipath>
-			<deserializer>com.gaia.hermes2.http.deserializer.Hermes2HttpGatewayDeserialier</deserializer>
+			<usemultipart>true</usemultipart>
+			<deserializer>com.gaia.hermes2.http.deserializer.HttpGatewayDeserialier</deserializer>
 			<path>/hermes2/register</path>
 			<async>true</async>
 			<workerpool>
@@ -67,7 +67,7 @@
 		<http>
 			<name>hermes_http_register_gateway</name>
 			<server>hermes2_http_server_8801</server>
-			<usemultipath>true</usemultipath>
+			<usemultipart>true</usemultipart>
 			<deserializer>com.gaia.hermes2.http.deserializer.Hermes2HttpGatewayDeserialier</deserializer>
 			<path>/hermes</path>
 			<async>true</async>

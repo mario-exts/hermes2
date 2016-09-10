@@ -36,6 +36,7 @@ public class F extends Fields {
 
 	public static final String _ID = "_id";
 	public static final String GCM = "gcm";
+	public static final String FCM = "fcm";
 	public static final String APNS = "apns";
 	public static final String TOTAL_COUNT = "totalCount";
 	public static final String GCM_COUNT = "gcmCount";

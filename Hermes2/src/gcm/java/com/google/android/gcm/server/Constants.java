@@ -24,6 +24,8 @@ public final class Constants {
 	 * Endpoint for sending messages.
 	 */
 	public static final String GCM_SEND_ENDPOINT = "https://gcm-http.googleapis.com/gcm/send";
+	
+	public static final String FCM_SEND_ENDPOINT = "https://fcm.googleapis.com/fcm/send";
 
 	/**
 	 * Parameter for to field.
@@ -189,6 +191,8 @@ public final class Constants {
 	 * JSON-only field representing the payload data.
 	 */
 	public static final String JSON_PAYLOAD = "data";
+	
+	public static final String JSON_PAYLOAD_NOTIFICATION = "notification";
 
 	/**
 	 * JSON-only field representing the notification payload.

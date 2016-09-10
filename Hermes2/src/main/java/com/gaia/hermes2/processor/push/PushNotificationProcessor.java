@@ -106,16 +106,20 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 
 		int gcmCount = 0;
 		int apnsCount = 0;
+		int fcmCount=0;
 		if (countByService.containsKey("gcm")) {
 			gcmCount = countByService.get("gcm");
 		}
 		if (countByService.containsKey("apns")) {
 			apnsCount = countByService.get("apns");
 		}
+		if(countByService.containsKey("fcm")){
+			fcmCount=countByService.get("fcm");
+		}
 
 		bean.setTotalCount(gcmCount + apnsCount);
 		bean.setApnsCount(apnsCount);
-		bean.setGcmCount(gcmCount);
+		bean.setGcmCount(gcmCount+fcmCount);
 		pushTaskModel.insert(bean);
 		taskReporter.setTaskId(bean.getId());
 		taskReporter.addAndGetSubTaskCount(targetDevicesByService.size());
@@ -159,6 +163,7 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 		PuObject result = new PuObject();
 		result.set(F.ID, bean.getId());
 		result.set(F.GCM, gcmCount);
+		result.set(F.FCM, fcmCount);
 		result.set(F.APNS, apnsCount);
 		return new Hermes2Result(Status.SUCCESS, result);
 
