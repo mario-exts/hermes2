@@ -10,7 +10,8 @@ public enum Status {
 	DUPLICATE_BUNDLE_ID(6,"Duplicate bunde ID"),
 	DUPLICATE_SMS_SERVICE(7,"Duplicate sms service"),
 	DUPLICATE_TOKEN(8,"Duplicate token"),
-	AUTHENTICATOR_NOT_FOUND(9,"Authenticator not found")
+	AUTHENTICATOR_NOT_FOUND(9,"Authenticator not found"),
+	DUPLICATE_PRODUCT_ID(6,"Duplicate Product ID")
 	;
 	private int id;
 	private String message;

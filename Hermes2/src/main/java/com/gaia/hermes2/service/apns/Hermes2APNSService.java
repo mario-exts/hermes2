@@ -42,6 +42,8 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 	static final String APNS_MAX_CONNECTION = "apns.client.max.connection";
 	static final String APNS_MIN_MESSAGE_PER_CONNECTION = "apns.client.minimum.message.per.connection";
 
+	static final int MAX_THREAD_COUNT = 32;
+
 	private PuObject clientConfig;
 	private PuObject applicationConfig;
 	private NioEventLoopGroup nioEventLoopGroup;
@@ -60,8 +62,11 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 
 		this.apnsClientPool = new ApnsClientPool(clientConfig, applicationConfig, nioEventLoopGroup);
 		this.executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
-				.setNameFormat("Hermes2APNS " + applicationConfig.getString(F.ID) + " Executor #%d").build());
-
+				.setNameFormat("Hermes2APNS " + applicationConfig.getString(F.ID) + "Executor #%d").build());
+		// this.executor = Executors.newFixedThreadPool(MAX_THREAD_COUNT, new
+		// ThreadFactoryBuilder()
+		// .setNameFormat("Hermes2APNS " + applicationConfig.getString(F.ID) + "
+		// Executor #%d").build());
 	}
 
 	@Override
@@ -85,127 +90,143 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 
 	@Override
 	public void push(Hermes2Notification notification, PushTaskReporter taskReporter) {
-
-		final ApnsPayloadBuilder payloadBuilder = new ApnsPayloadBuilder();
-		payloadBuilder.setAlertBody(notification.getMessage());
-		if (notification.getBadge() > 0) {
-			payloadBuilder.setBadgeNumber(notification.getBadge());
-		}
-		final String payload = payloadBuilder.buildWithDefaultMaximumLength();
-		final String[] recipients = notification.getRecipients()
-				.toArray(new String[notification.getRecipients().size()]);
-		int minMessagePerConnection = this.clientConfig.getInteger(APNS_MIN_MESSAGE_PER_CONNECTION);
-
-		int numClients = Double.valueOf(Math.ceil(Double.valueOf(recipients.length) / minMessagePerConnection))
-				.intValue();
-		numClients = Math.min(numClients, this.clientConfig.getInteger(APNS_MAX_CONNECTION, DEFAULT_MAX_CONNECTION));
-
-		getLogger().debug("Calculated number clients to be borrow: {}", numClients);
-
-		final List<ApnsClient<NotificationItem>> clients = new ArrayList<>();
-
-		for (int i = 0; i < numClients; i++) {
-			try {
-				clients.add(this.apnsClientPool.borrowObject());
-			} catch (Exception e) {
-				getLogger().error("apns error: " + e.getMessage(), e);
+		try {
+			final ApnsPayloadBuilder payloadBuilder = new ApnsPayloadBuilder();
+			payloadBuilder.setAlertBody(notification.getMessage());
+			if (notification.getBadge() > 0) {
+				payloadBuilder.setBadgeNumber(notification.getBadge());
 			}
-		}
+			final String payload = payloadBuilder.buildWithDefaultMaximumLength();
+			final String[] recipients = notification.getRecipients()
+					.toArray(new String[notification.getRecipients().size()]);
+			int minMessagePerConnection = this.clientConfig.getInteger(APNS_MIN_MESSAGE_PER_CONNECTION);
 
-		getLogger().debug("Did borrow {} clients", clients.size());
+			int numClients = Double.valueOf(Math.ceil(Double.valueOf(recipients.length) / minMessagePerConnection))
+					.intValue();
+			numClients = Math.min(numClients,
+					this.clientConfig.getInteger(APNS_MAX_CONNECTION, DEFAULT_MAX_CONNECTION));
 
-		final int numMessagePerClient = Double
-				.valueOf(Math.ceil(Double.valueOf(recipients.length) / Double.valueOf(clients.size()))).intValue();
+			getLogger().debug("Calculated number clients to be borrow: {}", numClients);
 
-		getLogger().debug("---> Will send {} message(s) per client", numMessagePerClient);
-		final String topic = this.applicationConfig.getString(F.TOPIC,
-				this.applicationConfig.getString(F.BUNDLE_ID, null));
+			final List<ApnsClient<NotificationItem>> clients = new ArrayList<>();
 
-		final List<Future<PushNotificationResponse<NotificationItem>>> responseFutures = new CopyOnWriteArrayList<>();
-		final CountDownLatch sendingDoneSignal = new CountDownLatch(clients.size());
+			for (int i = 0; i < numClients; i++) {
+				try {
+					clients.add(this.apnsClientPool.borrowObject());
+				} catch (Exception e) {
+					getLogger().error("apns error: " + e.getMessage(), e);
+				}
+			}
 
-		for (int i = 0; i < clients.size(); i++) {
-			final int index = i;
-			this.executor.submit(new Runnable() {
+			getLogger().debug("Did borrow {} clients", clients.size());
 
-				private final int clientId = index;
-				private final ApnsClient<NotificationItem> client = clients.get(this.clientId);
+			final int numMessagePerClient = Double
+					.valueOf(Math.ceil(Double.valueOf(recipients.length) / Double.valueOf(clients.size()))).intValue();
 
-				@Override
-				public void run() {
-					try {
-						int startId = clientId * numMessagePerClient;
-						int endId = startId + numMessagePerClient;
-						endId = Math.min(endId, recipients.length);
-						getLogger().debug("Start sending from token {} to {}", startId, endId);
-						for (int i = startId; i < endId; i++) {
-							NotificationItem notificationItem = topic != null
-									? new NotificationItem(recipients[i], payload, topic)
-									: new NotificationItem(recipients[i], payload);
-							Future<PushNotificationResponse<NotificationItem>> future = this.client
-									.sendNotification(notificationItem);
-							responseFutures.add(future);
+			getLogger().debug("---> Will send {} message(s) per client", numMessagePerClient);
+			final String topic = this.applicationConfig.getString(F.TOPIC,
+					this.applicationConfig.getString(F.BUNDLE_ID, null));
+			getLogger().debug("topic to push is: {}", topic);
+
+			final List<Future<PushNotificationResponse<NotificationItem>>> responseFutures = new CopyOnWriteArrayList<>();
+			final CountDownLatch sendingDoneSignal = new CountDownLatch(clients.size());
+			getLogger().debug("begin to send notify APNs with {} client",clients.size() );
+			for (int i = 0; i < clients.size(); i++) {
+				final int index = i;
+				getLogger().debug("send with client {}",index);
+				this.executor.submit(new Runnable() {
+
+					private final int clientId = index;
+					private final ApnsClient<NotificationItem> client = clients.get(this.clientId);
+
+					@Override
+					public void run() {
+						try {
+							int startId = clientId * numMessagePerClient;
+							int endId = startId + numMessagePerClient;
+							endId = Math.min(endId, recipients.length);
+							getLogger().debug("Start sending from token {} to {}", startId, endId);
+							for (int i = startId; i < endId; i++) {
+								NotificationItem notificationItem = topic != null
+										? new NotificationItem(recipients[i], payload, topic)
+										: new NotificationItem(recipients[i], payload);
+								Future<PushNotificationResponse<NotificationItem>> future = this.client
+										.sendNotification(notificationItem);
+								responseFutures.add(future);
+							}
+						} catch (Exception e) {
+							getLogger().error("Error while sending apns message", e);
+						} finally {
+							sendingDoneSignal.countDown();
+							apnsClientPool.returnObject(this.client);
+							getLogger().debug("do return object " + clientId);
 						}
-					} catch (Exception e) {
-						getLogger().error("Error while sending apns message", e);
-					} finally {
-						apnsClientPool.returnObject(this.client);
-						sendingDoneSignal.countDown();
+					}
+				});
+			}
+			getLogger().debug("begin to get response APNs");
+			this.executor.execute(new Runnable() {
+				public void run() {
+
+					try {
+						sendingDoneSignal.await();
+					} catch (InterruptedException e) {
+						// FIXME how to deal with interrupted exception
+						getLogger().error("Thread interupted while in waiting for sending to success");
+//						throw new RuntimeException(e);
+					}
+					getLogger().debug("Push Apns was completed, start to get response");
+					int successCount = 0;
+					int failureCount = 0;
+					List<String> failureTokens = new ArrayList<>();
+					for (Future<PushNotificationResponse<NotificationItem>> future : responseFutures) {
+						boolean success = false;
+						try {
+							PushNotificationResponse<NotificationItem> response = future.get();
+							getLogger().debug("Got response from APNS: " + response.getPushNotification().getToken()
+									+ "  " + response.getRejectionReason() + "  "
+									+ response.getPushNotification().getTopic());
+							success = response.isAccepted();
+							if (!success) {
+								getLogger().debug("APNS get response failed, resion: {}",
+										response.getRejectionReason());
+								if (response.getRejectionReason().equalsIgnoreCase("Unregistered")
+										|| response.getRejectionReason().equalsIgnoreCase("BadDeviceToken")) {
+									failureTokens.add(response.getPushNotification().getToken());
+								}
+							}
+						} catch (InterruptedException | ExecutionException e) {
+							getLogger().error("Error while trying to get response", e);
+						}
+						if (success) {
+							successCount++;
+						} else {
+							failureCount++;
+						}
+					}
+
+					taskReporter.increaseApnsCount(successCount, failureCount);
+					getLogger().debug("ApnsPush get {} success, {} failure at thread {}", successCount, failureCount,
+							taskReporter.getThreadCount());
+					if (taskReporter.decrementSubTaskCount() == 0) {
+						getLogger().debug("Hermes2Push is done .....................");
+					}
+					int removedCount = taskReporter.removeTokens(failureTokens);
+					if (removedCount > 0) {
+						getLogger().debug("Trying to remove {} Unregisted tokens, success is {}", failureTokens.size(),
+								removedCount);
+
 					}
 				}
 			});
-		}
-
-		this.executor.execute(new Runnable() {
-			public void run() {
-
-				try {
-					sendingDoneSignal.await();
-				} catch (InterruptedException e) {
-					// FIXME how to deal with interrupted exception
-					getLogger().error("Thread interupted while in waiting for sending to success");
-					throw new RuntimeException(e);
-				}
-				getLogger().debug("Push Apns was completed, start to get response");
-				int successCount = 0;
-				int failureCount = 0;
-				List<String> failureTokens = new ArrayList<>();
-				for (Future<PushNotificationResponse<NotificationItem>> future : responseFutures) {
-					boolean success = false;
-					try {
-						PushNotificationResponse<NotificationItem> response = future.get();
-						getLogger().debug("Got response from APNS: " + response.getPushNotification().getToken()+"  "+response.getRejectionReason()+"  "+response.getPushNotification().getTopic());
-						success = response.isAccepted();
-						if (!success) {
-							getLogger().debug("APNS get response failed, resion: {}", response.getRejectionReason());
-							if (response.getRejectionReason().equalsIgnoreCase("Unregistered")) {
-								failureTokens.add(response.getPushNotification().getToken());
-							}
-						}
-					} catch (InterruptedException | ExecutionException e) {
-						getLogger().error("Error while trying to get response", e);
-					}
-					if (success) {
-						successCount++;
-					} else {
-						failureCount++;
-					}
-				}
-
-				taskReporter.increaseApnsCount(successCount, failureCount);
-				getLogger().debug("ApnsPush get {} success, {} failure at thread {}", successCount, failureCount,
-						taskReporter.getThreadCount());
-				if (taskReporter.decrementSubTaskCount() == 0) {
-					getLogger().debug("Hermes2Push is done .....................");
-				}
-				int removedCount = taskReporter.removeTokens(failureTokens);
-				if (removedCount > 0) {
-					getLogger().debug("Trying to remove {} Unregisted tokens, success is {}", failureTokens.size(),
-							removedCount);
-
-				}
+			
+			getLogger().debug("DONE push APNs");
+		} catch (Exception e) {
+			getLogger().error("Error APNs push", e);
+			if (taskReporter.decrementSubTaskCount() == 0) {
+				getLogger().debug("Hermes2Push is done .....................");
 			}
-		});
+		}
 	}
 
 }

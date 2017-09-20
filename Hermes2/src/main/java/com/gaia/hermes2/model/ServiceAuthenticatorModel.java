@@ -18,4 +18,6 @@ public interface ServiceAuthenticatorModel {
 	ServiceAuthenticatorBean findByAppIdAndChecksum(String appId, String checksum);
 	
 	ServiceAuthenticatorBean findByBundleId(String bundleId, String serviceType, boolean sandbox);
+	
+	ServiceAuthenticatorBean findByProductId(String productId, String serviceType, boolean sandbox);
 }

@@ -86,6 +86,20 @@ public class ServiceAuthenticatorModelImpl extends HermesAbstractModel implement
 	}
 
 	@Override
+	public ServiceAuthenticatorBean findByProductId(String productId, String serviceType, boolean sandbox) {
+		Document match = new Document(DBF.PRODUCT_ID, productId);
+		match.append(DBF.SANDBOX, sandbox);
+		if (serviceType != null) {
+			match.append(DBF.SERVICE_TYPE, serviceType);
+		}
+		FindIterable<Document> found = getCollection().find(match);
+		if (found.first() != null) {
+			return ServiceAuthenticatorBean.fromDocument(found.first());
+		}
+		return null;
+	}
+
+	@Override
 	public boolean update(String id, ServiceAuthenticatorBean bean) {
 		Document doc = new Document(F.ID, id);
 		UpdateResult result = getCollection().updateOne(doc, new Document("$set", bean.toDocument()));

@@ -25,6 +25,7 @@ public class ServiceAuthenticatorBean extends AbstractMongoBean {
 	private String checksum;
 	private boolean sandbox;
 	private String topic;
+	private String productId;
 	private String bundleId;
 
 	@Override
@@ -43,6 +44,7 @@ public class ServiceAuthenticatorBean extends AbstractMongoBean {
 		if (bundleId != null) {
 			doc.put(DBF.BUNDLE_ID, this.bundleId);
 		}
+		doc.put(DBF.PRODUCT_ID, productId);
 		return doc;
 	}
 
@@ -63,6 +65,9 @@ public class ServiceAuthenticatorBean extends AbstractMongoBean {
 		if (doc.containsKey(DBF.BUNDLE_ID)) {
 			bean.setTopic(doc.getString(DBF.BUNDLE_ID));
 		}
+		if(doc.containsKey(DBF.PRODUCT_ID)){
+			bean.setProductId(doc.getString(DBF.PRODUCT_ID));
+		}
 		return bean;
 	}
 	@Override
@@ -81,6 +86,7 @@ public class ServiceAuthenticatorBean extends AbstractMongoBean {
 		if (bundleId != null) {
 			puo.set(F.BUNDLE_ID, this.bundleId);
 		}
+		puo.set(F.PRODUCT_ID, this.productId);
 		return puo;
 	}
 

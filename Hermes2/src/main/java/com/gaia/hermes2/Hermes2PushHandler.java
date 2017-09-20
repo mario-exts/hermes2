@@ -40,7 +40,7 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 	private final CommandController controller = new CommandController();
 	private ModelFactory modelFactory;
 	private MongoClient mongoClient;
-	private Map<String,Hermes2SmsService> smsServices=new ConcurrentHashMap<>();
+	private Map<String, Hermes2SmsService> smsServices = new ConcurrentHashMap<>();
 	private final Map<String, Hermes2PushNotificationService> pushNotificationServices = new ConcurrentHashMap<>();
 
 	@Override
@@ -128,10 +128,10 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 					throw new RuntimeException(e);
 				}
 				serviceProperties.put(serviceType, properties);
-			}else if(key.startsWith(F.SMS_SERVICE)){
+			} else if (key.startsWith(F.SMS_SERVICE)) {
 				try {
-					this.smsServiceHandleClasses.put(serviceType, (Class<? extends Hermes2SmsService>) this
-							.getClass().getClassLoader().loadClass(serviceConfig.getProperty(key)));
+					this.smsServiceHandleClasses.put(serviceType, (Class<? extends Hermes2SmsService>) this.getClass()
+							.getClassLoader().loadClass(serviceConfig.getProperty(key)));
 				} catch (Exception e) {
 					throw new RuntimeException("Class not found or invalid type for service handler: " + key + " --> "
 							+ serviceConfig.getProperty(key), e);
@@ -139,7 +139,7 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 			}
 		}
 	}
-	
+
 	@Override
 	public PuElement handle(Message message) {
 		getLogger().debug("Handling message: " + message.getData());
@@ -184,7 +184,6 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 		return new PuValue("Missing command");
 	}
 
-	
 	public Hermes2PushNotificationService getPushService(String authenticatorId) {
 		if (!pushNotificationServices.containsKey(authenticatorId)) {
 			getLogger().debug("Service is not existing for authenticator id " + authenticatorId);
@@ -231,29 +230,29 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 		}
 		return pushNotificationServices.get(authenticatorId);
 	}
-	
-	
-	public boolean removeServiceFromMap(String authenticatorId){
-		if(pushNotificationServices!=null && pushNotificationServices.containsKey(authenticatorId)){
+
+	public boolean removeServiceFromMap(String authenticatorId) {
+		if (pushNotificationServices != null && pushNotificationServices.containsKey(authenticatorId)) {
 			pushNotificationServices.remove(authenticatorId);
+			return true;
+		}
+		if (authenticatorId.equals("all")) {
+			pushNotificationServices.clear();
 			return true;
 		}
 		return false;
 	}
-	
-	
-	public Hermes2SmsService getSmsService(String serviceId){
+
+	public Hermes2SmsService getSmsService(String serviceId) {
 		if (!smsServices.containsKey(serviceId)) {
 			getLogger().debug("Service is not existing for authenticator id " + serviceId);
 			synchronized (smsServices) {
 				if (!smsServices.containsKey(serviceId)) {
-					SmsServiceModelImpl model = getModelFactory()
-							.getModel(SmsServiceModelImpl.class.getName());
+					SmsServiceModelImpl model = getModelFactory().getModel(SmsServiceModelImpl.class.getName());
 					SmsServiceBean bean = model.findById(serviceId);
 					if (bean != null) {
 						String serviceType = bean.getServiceName();
-						Class<? extends Hermes2SmsService> clazz = this.smsServiceHandleClasses
-								.get(serviceType);
+						Class<? extends Hermes2SmsService> clazz = this.smsServiceHandleClasses.get(serviceType);
 						if (clazz != null) {
 							try {
 								Hermes2SmsService instance = clazz.newInstance();
@@ -288,16 +287,16 @@ public class Hermes2PushHandler extends BaseMessageHandler {
 		}
 		return smsServices.get(serviceId);
 	}
-	
-	public Hermes2SmsService getDefaultSmsService(){
-		SmsServiceModelImpl model=getModelFactory().getModel(SmsServiceModelImpl.class.getName());
+
+	public Hermes2SmsService getDefaultSmsService() {
+		SmsServiceModelImpl model = getModelFactory().getModel(SmsServiceModelImpl.class.getName());
 		SmsServiceBean bean = model.findDefault();
-		if(bean!=null){
+		if (bean != null) {
 			return getSmsService(bean.getId());
 		}
 		return null;
 	}
-	
+
 	@Override
 	public void destroy() throws Exception {
 		for (Hermes2PushNotificationService service : this.pushNotificationServices.values()) {

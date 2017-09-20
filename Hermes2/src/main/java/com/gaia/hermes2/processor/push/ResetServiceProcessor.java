@@ -10,6 +10,7 @@ public class ResetServiceProcessor extends Hermes2BaseProcessor{
 
 	@Override
 	protected Hermes2Result process(PuObjectRO data) {
+		
 		if(!data.variableExists(F.ID)){
 			return new Hermes2Result(Status.PARAMS_MISSING);
 		}

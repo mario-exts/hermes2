@@ -45,12 +45,20 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 		String applicationId = data.getString(F.APPLICATION_ID);
 		String authenticatorId = null;
 		String serviceType = data.getString(F.SERVICE_TYPE, null);
+		if (serviceType!=null && serviceType.length() < 3) {
+			serviceType = null;
+		}
+		String productId = data.getString(F.PRODUCT_ID, null);
+		ServiceAuthenticatorModel authenModel = getAuthenticatorModel();
 		if (data.variableExists(F.BUNDLE_ID)) {
-			ServiceAuthenticatorModel authenModel = getAuthenticatorModel();
-			ServiceAuthenticatorBean service = authenModel.findByBundleId(data.getString(F.BUNDLE_ID), serviceType,
+			String bundleId=data.getString(F.BUNDLE_ID);
+			ServiceAuthenticatorBean service = authenModel.findByBundleId(bundleId, serviceType,
 					sandbox);
 			if (service != null) {
 				authenticatorId = service.getId();
+			}else{
+				getLogger().debug("Authenticator for bundle: "+bundleId+"  not found");
+				return new Hermes2Result(Status.AUTHENTICATOR_NOT_FOUND);
 			}
 		}
 
@@ -65,9 +73,10 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 			}
 		} else {
 			if (serviceType != null) {
-				beans = deviceModel.findByAppIdAndServiceType(applicationId, serviceType, authenticatorId, sandbox);
+				beans = deviceModel.findByAppIdAndServiceType(applicationId, productId, serviceType, authenticatorId,
+						sandbox);
 			} else {
-				beans = deviceModel.findByAppId(applicationId, authenticatorId, sandbox);
+				beans = deviceModel.findByAppId(applicationId, productId, authenticatorId, sandbox);
 			}
 		}
 
@@ -106,20 +115,20 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 
 		int gcmCount = 0;
 		int apnsCount = 0;
-		int fcmCount=0;
+		int fcmCount = 0;
 		if (countByService.containsKey("gcm")) {
 			gcmCount = countByService.get("gcm");
 		}
 		if (countByService.containsKey("apns")) {
 			apnsCount = countByService.get("apns");
 		}
-		if(countByService.containsKey("fcm")){
-			fcmCount=countByService.get("fcm");
+		if (countByService.containsKey("fcm")) {
+			fcmCount = countByService.get("fcm");
 		}
 
 		bean.setTotalCount(gcmCount + apnsCount);
 		bean.setApnsCount(apnsCount);
-		bean.setGcmCount(gcmCount+fcmCount);
+		bean.setGcmCount(gcmCount + fcmCount);
 		pushTaskModel.insert(bean);
 		taskReporter.setTaskId(bean.getId());
 		taskReporter.addAndGetSubTaskCount(targetDevicesByService.size());
@@ -150,8 +159,15 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 				this.executor.execute(new Runnable() {
 					@Override
 					public void run() {
-						service.push(new BaseHermes2Notification(entry.getValue(), message,
-								data.getString(F.TITLE, null), messageId), taskReporter);
+						try {
+							service.push(new BaseHermes2Notification(entry.getValue(), message,
+									data.getString(F.TITLE, null), messageId), taskReporter);
+							getLogger().debug("push for: {} ", entry.getKey());
+						} catch (Exception e) {
+							getLogger().error("Error when push for " + entry.getKey(), e);
+							taskReporter.decrementSubTaskCount();
+						}
+
 					}
 				});
 			} else {
@@ -159,7 +175,6 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 				getLogger().warn("Unable to get notification service for authenticator id " + entry.getKey());
 			}
 		});
-
 		PuObject result = new PuObject();
 		result.set(F.ID, bean.getId());
 		result.set(F.GCM, gcmCount);

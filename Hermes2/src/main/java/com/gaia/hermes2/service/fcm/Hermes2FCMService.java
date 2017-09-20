@@ -22,7 +22,7 @@ import com.nhb.common.data.PuObjectRO;
 public class Hermes2FCMService extends Hermes2AbstractPushNotificationService {
 
 	private final String BATCH_CHUNK_SIZE = "fcm.batchChunkSize";
-
+	public static int MAX_THREAD_COUNT=16;
 	public static int DEFAULT_RETRIES = 1;
 
 	private ExecutorService executor;
@@ -36,7 +36,10 @@ public class Hermes2FCMService extends Hermes2AbstractPushNotificationService {
 		this.applicationConfig = properties.getPuObject(F.APPLICATION_CONFIG, new PuObject());
 		this.sender = new FCMAsyncSender(applicationConfig.getString(F.AUTHENTICATOR));
 		this.executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
-				.setNameFormat("Hermes2GCM " + applicationConfig.getString(F.ID) + " #%d").build());
+				.setNameFormat("Hermes2FCM " + applicationConfig.getString(F.ID) + " #%d").build());
+		// this.executor = Executors.newFixedThreadPool(MAX_THREAD_COUNT, new
+		// ThreadFactoryBuilder()
+		// .setNameFormat("Hermes2APNS " + applicationConfig.getString(F.ID) + " Executor #%d").build());
 	}
 
 	@Override
@@ -55,7 +58,7 @@ public class Hermes2FCMService extends Hermes2AbstractPushNotificationService {
 				// delegate result handling to another thread
 				executor.submit(new Runnable() {
 					public void run() {
-						getLogger().debug("GCM push is complete, success: " + result.getSuccess() + ", failure: "
+						getLogger().debug("FCM push is complete, success: " + result.getSuccess() + ", failure: "
 								+ result.getFailure() + ", remaining thread: " + taskReporter.getThreadCount());
 
 						taskReporter.increaseGcmCount(result.getSuccess(), result.getFailure());
@@ -73,7 +76,7 @@ public class Hermes2FCMService extends Hermes2AbstractPushNotificationService {
 
 			@Override
 			public void apply(Throwable cause) {
-				getLogger().error("An error occur when sending message: ", cause);
+				getLogger().error("An error occur when sending FCM message: ", cause);
 				executor.submit(new Runnable() {
 
 					@Override
@@ -91,48 +94,55 @@ public class Hermes2FCMService extends Hermes2AbstractPushNotificationService {
 
 	@Override
 	public void push(Hermes2Notification notification, PushTaskReporter taskReporter) {
-		List<List<String>> batchs = new ArrayList<>();
+		try {
+			List<List<String>> batchs = new ArrayList<>();
 
-		int partitionCount = notification.getRecipients().size() / this.clientConfig.getInteger(BATCH_CHUNK_SIZE);
-		partitionCount = partitionCount == 0 ? 1 : partitionCount;
+			int partitionCount = notification.getRecipients().size() / this.clientConfig.getInteger(BATCH_CHUNK_SIZE);
+			partitionCount = partitionCount == 0 ? 1 : partitionCount;
 
-		for (int i = 0; i < partitionCount; i++) {
-			batchs.add(new ArrayList<String>());
-		}
-
-		int index = 0;
-		for (String recipient : notification.getRecipients()) {
-			batchs.get(index++ % partitionCount).add(recipient);
-		}
-
-		Builder messageBuilder = new Message.Builder();
-		messageBuilder.addData(F.MESSAGE, notification.getMessage());
-		Notification.Builder notiBuilder = new Notification.Builder(null);
-		notiBuilder.body(notification.getMessage());
-		String title = notification.getTitle();
-		if (title != null) {
-//			messageBuilder.addData(F.TITLE, title);
-			notiBuilder.title(title);
-		}
-
-		if (notification.getBadge() > 0) {
-//			messageBuilder.addData(F.BADGE, String.valueOf(notification.getBadge()));
-			notiBuilder.badge(notification.getBadge());
-		}
-
-		String messgeId = notification.getMessageId();
-		if (messgeId != null) {
-			messageBuilder.addData(F.MESSAGE_ID, messgeId);
-		}
-		messageBuilder.notification(notiBuilder.build());
-		if (batchs.size() == 0) {
-			taskReporter.decrementSubTaskCount();
-		} else {
-			taskReporter.addAndGetSubTaskCount(batchs.size() - 1);
-			Message message = messageBuilder.build();
-			for (List<String> recipients : batchs) {
-				Hermes2FCMService.this.asyncSend(message, recipients, taskReporter);
+			for (int i = 0; i < partitionCount; i++) {
+				batchs.add(new ArrayList<String>());
 			}
+
+			int index = 0;
+			for (String recipient : notification.getRecipients()) {
+				batchs.get(index++ % partitionCount).add(recipient);
+			}
+
+			Builder messageBuilder = new Message.Builder();
+			messageBuilder.addData(F.MESSAGE, notification.getMessage());
+			Notification.Builder notiBuilder = new Notification.Builder(null);
+			notiBuilder.body(notification.getMessage());
+			String title = notification.getTitle();
+			if (title != null) {
+				// messageBuilder.addData(F.TITLE, title);
+				notiBuilder.title(title);
+			}
+
+			if (notification.getBadge() > 0) {
+				// messageBuilder.addData(F.BADGE,
+				// String.valueOf(notification.getBadge()));
+				notiBuilder.badge(notification.getBadge());
+			}
+
+			String messgeId = notification.getMessageId();
+			if (messgeId != null) {
+				messageBuilder.addData(F.MESSAGE_ID, messgeId);
+			}
+			messageBuilder.notification(notiBuilder.build());
+			if (batchs.size() == 0) {
+				taskReporter.decrementSubTaskCount();
+			} else {
+				taskReporter.addAndGetSubTaskCount(batchs.size() - 1);
+				Message message = messageBuilder.build();
+				for (List<String> recipients : batchs) {
+					Hermes2FCMService.this.asyncSend(message, recipients, taskReporter);
+				}
+			}
+
+		} catch (Exception e) {
+			getLogger().error("Error when push FCM", e);
+			taskReporter.decrementSubTaskCount();
 		}
 	}
 

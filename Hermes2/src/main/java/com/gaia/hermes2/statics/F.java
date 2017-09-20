@@ -32,6 +32,7 @@ public class F extends Fields {
 	public static final String DEVICE_TOKENS = "deviceTokens";
 	public static final String TARGETS = "targets";
 	public static final String TOPIC = "topic";
+	public static final String PRODUCT_ID = "productId";
 	public static final String BUNDLE_ID = "bundleId";
 
 	public static final String _ID = "_id";
