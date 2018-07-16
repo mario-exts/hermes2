@@ -59,12 +59,13 @@ public class Hermes2FCMService extends Hermes2AbstractPushNotificationService {
 				executor.submit(new Runnable() {
 					public void run() {
 						getLogger().debug("FCM push is complete, success: " + result.getSuccess() + ", failure: "
-								+ result.getFailure() + ", remaining thread: " + taskReporter.getThreadCount());
-
-						taskReporter.increaseGcmCount(result.getSuccess(), result.getFailure());
-
-						if (taskReporter.decrementSubTaskCount() == 0) {
-							getLogger().debug("Hermes2Push is done..................... ");
+								+ result.getFailure() );
+						if(taskReporter!=null ) {
+							taskReporter.increaseGcmCount(result.getSuccess(), result.getFailure());
+							
+							if (taskReporter.decrementSubTaskCount() == 0) {
+								getLogger().debug("Hermes2Push is done..................... ");
+							}
 						}
 						// TODO Remove error tokens
 					}
@@ -81,7 +82,7 @@ public class Hermes2FCMService extends Hermes2AbstractPushNotificationService {
 
 					@Override
 					public void run() {
-						if (taskReporter.decrementSubTaskCount() == 0) {
+						if (taskReporter!=null && taskReporter.decrementSubTaskCount() == 0) {
 							getLogger().debug("Hermes2Push is done..................... ");
 						}
 					}
@@ -131,9 +132,11 @@ public class Hermes2FCMService extends Hermes2AbstractPushNotificationService {
 			}
 			messageBuilder.notification(notiBuilder.build());
 			if (batchs.size() == 0) {
-				taskReporter.decrementSubTaskCount();
+				if(taskReporter!=null)
+					taskReporter.decrementSubTaskCount();
 			} else {
-				taskReporter.addAndGetSubTaskCount(batchs.size() - 1);
+				if(taskReporter!=null)
+					taskReporter.addAndGetSubTaskCount(batchs.size() - 1);
 				Message message = messageBuilder.build();
 				for (List<String> recipients : batchs) {
 					Hermes2FCMService.this.asyncSend(message, recipients, taskReporter);
@@ -142,7 +145,8 @@ public class Hermes2FCMService extends Hermes2AbstractPushNotificationService {
 
 		} catch (Exception e) {
 			getLogger().error("Error when push FCM", e);
-			taskReporter.decrementSubTaskCount();
+			if(taskReporter!=null)
+				taskReporter.decrementSubTaskCount();
 		}
 	}
 

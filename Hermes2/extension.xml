@@ -4,12 +4,12 @@
 		<mongodb>
 			<name>hermes2_mongodb</name>
 			<endpoint>
-				<entry>127.0.0.1:27017</entry>
+				<entry>${MONGO_DB}</entry>
 			</endpoint>
 			<credentials>
 				<entry>
-					<username>local_admin</username>
-					<password>123456</password>
+					<username>${MONGO_USER}</username>
+					<password>${MONGO_PASSWORD}</password>
 					<authdb>admin</authdb>
 				</entry>
 			</credentials>
@@ -125,6 +125,7 @@
 				<variable name="serviceConfigFile" type="String">conf/services.properties</variable>
 				<variable name="commands" type="puobject">
 					<variable name="push" type="String">com.gaia.hermes2.processor.push.PushNotificationProcessor</variable>
+					<variable name="pushToIds" type="String">com.gaia.hermes2.processor.push.PushToIdProcessor</variable>
 					<variable name="checkTask" type="String">com.gaia.hermes2.processor.push.CheckPushStateProcessor</variable>
 					<variable name="sendSms" type="String">com.gaia.hermes2.processor.push.SendSmsProcessor</variable>
 					<variable name="resetService" type="String">com.gaia.hermes2.processor.push.ResetServiceProcessor</variable>

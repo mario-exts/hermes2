@@ -1,6 +1,7 @@
 package com.gaia.hermes2.model.impl;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.bson.Document;
@@ -26,7 +27,7 @@ public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceT
 			}
 		}
 		return this.collection;
-		
+
 	}
 
 	@Override
@@ -41,13 +42,13 @@ public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceT
 	}
 
 	@Override
-	public List<DeviceTokenBean> findByAppId(String appId,String productId, String authenticatorId,boolean sandbox) {
+	public List<DeviceTokenBean> findByAppId(String appId, String productId, String authenticatorId, boolean sandbox) {
 		Document match = new Document(DBF.APPLICATION_ID, appId);
 		match.put(DBF.SANDBOX, sandbox);
-		if(authenticatorId!=null){
+		if (authenticatorId != null) {
 			match.put(DBF.AUTHENTICATOR_ID, authenticatorId);
 		}
-		if(productId!=null){
+		if (productId != null) {
 			match.put(DBF.PRODUCT_ID, productId);
 		}
 		FindIterable<Document> found = getCollection().find(match);
@@ -59,14 +60,15 @@ public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceT
 	}
 
 	@Override
-	public List<DeviceTokenBean> findByAppIdAndServiceType(String appId,String productId, String serviceType, String authenticatorId, boolean sandbox) {
+	public List<DeviceTokenBean> findByAppIdAndServiceType(String appId, String productId, String serviceType,
+			String authenticatorId, boolean sandbox) {
 		Document match = new Document(DBF.APPLICATION_ID, appId);
 		match.append(DBF.SERVICE_TYPE, serviceType);
 		match.put(DBF.SANDBOX, sandbox);
-		if(authenticatorId!=null){
+		if (authenticatorId != null) {
 			match.put(DBF.AUTHENTICATOR_ID, authenticatorId);
 		}
-		if(productId!=null){
+		if (productId != null) {
 			match.put(DBF.PRODUCT_ID, productId);
 		}
 		FindIterable<Document> found = getCollection().find(match);
@@ -78,10 +80,10 @@ public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceT
 	}
 
 	@Override
-	public DeviceTokenBean findByToken(String tokenId, String authenticatorId,boolean sandbox) {
+	public DeviceTokenBean findByToken(String tokenId, String authenticatorId, boolean sandbox) {
 		Document match = new Document(DBF.ID, tokenId);
 		match.put(DBF.SANDBOX, sandbox);
-		if(authenticatorId!=null){
+		if (authenticatorId != null) {
 			match.put(DBF.AUTHENTICATOR_ID, authenticatorId);
 		}
 		FindIterable<Document> found = getCollection().find(match);
@@ -122,6 +124,18 @@ public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceT
 		BulkWriteResult result = collection.bulkWrite(removes);
 		getLogger().info("Attempt to remove {} keys, success {}", tokens.size(), result.getModifiedCount());
 		return result.getModifiedCount();
+	}
+
+	@Override
+	public List<DeviceTokenBean> findByTokens(String appId, Collection<String> ids) {
+		Document match = new Document(DBF.APPLICATION_ID, appId);
+		match.put(DBF.ID, new Document("$in", ids));
+		FindIterable<Document> found = getCollection().find(match);
+		List<DeviceTokenBean> beans = new ArrayList<>();
+		for (Document doc : found) {
+			beans.add(DeviceTokenBean.fromDocument(doc));
+		}
+		return beans;
 	}
 
 }

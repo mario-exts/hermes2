@@ -6,7 +6,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.apache.http.HttpResponse;
 
-import com.nhb.common.BaseLoggable;
+import com.nhb.common.Loggable;
 import com.nhb.common.async.Callback;
 import com.nhb.common.async.RPCFuture;
 import com.nhb.common.data.PuElement;
@@ -17,7 +17,7 @@ import com.nhb.messaging.http.HttpClientHelper;
 import lombok.Getter;
 import lombok.Setter;
 
-public class SpeedSMSSendingFuture extends BaseLoggable implements RPCFuture<SpeedSMSSendingResponse> {
+public class SpeedSMSSendingFuture implements RPCFuture<SpeedSMSSendingResponse>, Loggable{
 
 	@Getter
 	private Throwable failedCause;
@@ -99,6 +99,11 @@ public class SpeedSMSSendingFuture extends BaseLoggable implements RPCFuture<Spe
 	public SpeedSMSSendingResponse get(long timeout, TimeUnit unit)
 			throws InterruptedException, ExecutionException, TimeoutException {
 		return this.parseAndSaveResponse(this.future.get(timeout, unit));
+	}
+
+	@Override
+	public void setTimeout(long arg0, TimeUnit arg1) {
+		
 	}
 
 }

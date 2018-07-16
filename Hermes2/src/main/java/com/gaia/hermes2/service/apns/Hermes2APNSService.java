@@ -130,10 +130,10 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 
 			final List<Future<PushNotificationResponse<NotificationItem>>> responseFutures = new CopyOnWriteArrayList<>();
 			final CountDownLatch sendingDoneSignal = new CountDownLatch(clients.size());
-			getLogger().debug("begin to send notify APNs with {} client",clients.size() );
+			getLogger().debug("begin to send notify APNs with {} client", clients.size());
 			for (int i = 0; i < clients.size(); i++) {
 				final int index = i;
-				getLogger().debug("send with client {}",index);
+				getLogger().debug("send with client {}", index);
 				this.executor.submit(new Runnable() {
 
 					private final int clientId = index;
@@ -173,7 +173,7 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 					} catch (InterruptedException e) {
 						// FIXME how to deal with interrupted exception
 						getLogger().error("Thread interupted while in waiting for sending to success");
-//						throw new RuntimeException(e);
+						// throw new RuntimeException(e);
 					}
 					getLogger().debug("Push Apns was completed, start to get response");
 					int successCount = 0;
@@ -205,25 +205,25 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 						}
 					}
 
-					taskReporter.increaseApnsCount(successCount, failureCount);
-					getLogger().debug("ApnsPush get {} success, {} failure at thread {}", successCount, failureCount,
-							taskReporter.getThreadCount());
-					if (taskReporter.decrementSubTaskCount() == 0) {
-						getLogger().debug("Hermes2Push is done .....................");
-					}
-					int removedCount = taskReporter.removeTokens(failureTokens);
-					if (removedCount > 0) {
-						getLogger().debug("Trying to remove {} Unregisted tokens, success is {}", failureTokens.size(),
-								removedCount);
-
+					getLogger().debug("ApnsPush get {} success, {} failure at thread {}", successCount, failureCount);
+					if (taskReporter != null) {
+						taskReporter.increaseApnsCount(successCount, failureCount);
+						if (taskReporter.decrementSubTaskCount() == 0) {
+							getLogger().debug("Hermes2Push is done .....................");
+						}
+						int removedCount = taskReporter.removeTokens(failureTokens);
+						if (removedCount > 0) {
+							getLogger().debug("Trying to remove {} Unregisted tokens, success is {}",
+									failureTokens.size(), removedCount);
+						}
 					}
 				}
 			});
-			
+
 			getLogger().debug("DONE push APNs");
 		} catch (Exception e) {
 			getLogger().error("Error APNs push", e);
-			if (taskReporter.decrementSubTaskCount() == 0) {
+			if (taskReporter != null && taskReporter.decrementSubTaskCount() == 0) {
 				getLogger().debug("Hermes2Push is done .....................");
 			}
 		}
