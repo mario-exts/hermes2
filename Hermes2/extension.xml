@@ -132,7 +132,7 @@
 				</variable>
 			</variables>
 		</handler>
-		
+
 		<handler>
 			<name>hermes2_admin_handler</name>
 			<handle>com.gaia.hermes2.Hermes2AdminHandler</handle>

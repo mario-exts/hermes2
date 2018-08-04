@@ -45,19 +45,18 @@ public class PushNotificationProcessor extends Hermes2BaseProcessor {
 		String applicationId = data.getString(F.APPLICATION_ID);
 		String authenticatorId = null;
 		String serviceType = data.getString(F.SERVICE_TYPE, null);
-		if (serviceType!=null && serviceType.length() < 3) {
+		if (serviceType != null && serviceType.length() < 3) {
 			serviceType = null;
 		}
 		String productId = data.getString(F.PRODUCT_ID, null);
 		ServiceAuthenticatorModel authenModel = getAuthenticatorModel();
 		if (data.variableExists(F.BUNDLE_ID)) {
-			String bundleId=data.getString(F.BUNDLE_ID);
-			ServiceAuthenticatorBean service = authenModel.findByBundleId(bundleId, serviceType,
-					sandbox);
+			String bundleId = data.getString(F.BUNDLE_ID);
+			ServiceAuthenticatorBean service = authenModel.findByBundleId(bundleId, serviceType, sandbox);
 			if (service != null) {
 				authenticatorId = service.getId();
-			}else{
-				getLogger().debug("Authenticator for bundle: "+bundleId+"  not found");
+			} else {
+				getLogger().debug("Authenticator for bundle: " + bundleId + "  not found");
 				return new Hermes2Result(Status.AUTHENTICATOR_NOT_FOUND);
 			}
 		}
