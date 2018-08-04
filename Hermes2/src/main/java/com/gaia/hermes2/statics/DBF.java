@@ -4,9 +4,11 @@ public class DBF extends F{
 	
 	public static final String MONGO_DATABASE_NAME = "hermes2";
 	public static final String DATABASE_DEVICE_TOKEN = "device_token";
-	public static final String DATABASE_DEVICE_TOKEN_SANDBOX = "device_token_sandbox";
+//	public static final String DATABASE_DEVICE_TOKEN_SANDBOX = "device_token_sandbox";
 	public static final String DATABASE_SERVICE_AUTHENTICATOR = "service_authenticator";
+	public static final String DATABASE_SMS_SERVICE="sms_service";
 	public static final String DATABASE_PUSH_TASK = "push_task";
+	public static final String DATABASE_PUSH_SMS_TASK = "pushSmsTask";
 	
 	
 	public static final String TOTAL_COUNT = "total_count";

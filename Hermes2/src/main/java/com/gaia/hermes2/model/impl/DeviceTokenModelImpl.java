@@ -1,6 +1,7 @@
 package com.gaia.hermes2.model.impl;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.bson.Document;
@@ -17,19 +18,16 @@ import com.mongodb.client.model.WriteModel;
 
 public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceTokenModel {
 	private MongoCollection<Document> collection;
-	private boolean useSandbox = false;
 
 	protected MongoCollection<Document> getCollection() {
 		if (this.collection == null) {
 			synchronized (this) {
-				if (useSandbox) {
-					this.collection = this.getDatabase().getCollection(DBF.DATABASE_DEVICE_TOKEN_SANDBOX);
-				} else {
-					this.collection = this.getDatabase().getCollection(DBF.DATABASE_DEVICE_TOKEN);
-				}
+				this.collection = this.getDatabase().getCollection(DBF.DATABASE_DEVICE_TOKEN);
+				return this.collection;
 			}
 		}
 		return this.collection;
+
 	}
 
 	@Override
@@ -44,18 +42,15 @@ public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceT
 	}
 
 	@Override
-	public DeviceTokenBean findById(String id) {
-		Document match = new Document(DBF.ID, "id");
-		FindIterable<Document> found = getCollection().find(match);
-		if (found != null && found.first() != null) {
-			return DeviceTokenBean.fromDocument(found.first());
-		}
-		return null;
-	}
-
-	@Override
-	public List<DeviceTokenBean> findByAppId(String appId) {
+	public List<DeviceTokenBean> findByAppId(String appId, String productId, String authenticatorId, boolean sandbox) {
 		Document match = new Document(DBF.APPLICATION_ID, appId);
+		match.put(DBF.SANDBOX, sandbox);
+		if (authenticatorId != null) {
+			match.put(DBF.AUTHENTICATOR_ID, authenticatorId);
+		}
+		if (productId != null) {
+			match.put(DBF.PRODUCT_ID, productId);
+		}
 		FindIterable<Document> found = getCollection().find(match);
 		List<DeviceTokenBean> beans = new ArrayList<>();
 		for (Document doc : found) {
@@ -65,14 +60,17 @@ public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceT
 	}
 
 	@Override
-	public void setSandbox(boolean useSandbox) {
-		this.useSandbox = useSandbox;
-	}
-
-	@Override
-	public List<DeviceTokenBean> findByAppIdAndServiceType(String appId, String serviceType) {
+	public List<DeviceTokenBean> findByAppIdAndServiceType(String appId, String productId, String serviceType,
+			String authenticatorId, boolean sandbox) {
 		Document match = new Document(DBF.APPLICATION_ID, appId);
 		match.append(DBF.SERVICE_TYPE, serviceType);
+		match.put(DBF.SANDBOX, sandbox);
+		if (authenticatorId != null) {
+			match.put(DBF.AUTHENTICATOR_ID, authenticatorId);
+		}
+		if (productId != null) {
+			match.put(DBF.PRODUCT_ID, productId);
+		}
 		FindIterable<Document> found = getCollection().find(match);
 		List<DeviceTokenBean> beans = new ArrayList<>();
 		for (Document doc : found) {
@@ -82,8 +80,12 @@ public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceT
 	}
 
 	@Override
-	public DeviceTokenBean findByToken(String tokenId) {
+	public DeviceTokenBean findByToken(String tokenId, String authenticatorId, boolean sandbox) {
 		Document match = new Document(DBF.ID, tokenId);
+		match.put(DBF.SANDBOX, sandbox);
+		if (authenticatorId != null) {
+			match.put(DBF.AUTHENTICATOR_ID, authenticatorId);
+		}
 		FindIterable<Document> found = getCollection().find(match);
 		try (MongoCursor<Document> iterator = found.iterator()) {
 			if (iterator.hasNext()) {
@@ -122,6 +124,18 @@ public class DeviceTokenModelImpl extends HermesAbstractModel implements DeviceT
 		BulkWriteResult result = collection.bulkWrite(removes);
 		getLogger().info("Attempt to remove {} keys, success {}", tokens.size(), result.getModifiedCount());
 		return result.getModifiedCount();
+	}
+
+	@Override
+	public List<DeviceTokenBean> findByTokens(String appId, Collection<String> ids) {
+		Document match = new Document(DBF.APPLICATION_ID, appId);
+		match.put(DBF.ID, new Document("$in", ids));
+		FindIterable<Document> found = getCollection().find(match);
+		List<DeviceTokenBean> beans = new ArrayList<>();
+		for (Document doc : found) {
+			beans.add(DeviceTokenBean.fromDocument(doc));
+		}
+		return beans;
 	}
 
 }

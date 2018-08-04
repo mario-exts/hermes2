@@ -50,7 +50,8 @@ class PooledApnsClientFactory extends BasePooledObjectFactory<ApnsClient<Notific
 		byte[] authenticator = applicationConfig.getRaw(F.AUTHENTICATOR);
 		String password = applicationConfig.getString(F.PASSWORD, "");
 		try (InputStream is = new ByteArrayInputStream(authenticator)) {
-			ApnsClient<NotificationItem> client = new ApnsClient<>(is, password, this.nioEventLoopGroup);
+			ApnsClient<NotificationItem> client = new ApnsClient<>(is, password == null ? "" : password,
+					this.nioEventLoopGroup);
 			return client;
 		} catch (IOException e) {
 			throw new RuntimeException("Unable to read authenticator", e);

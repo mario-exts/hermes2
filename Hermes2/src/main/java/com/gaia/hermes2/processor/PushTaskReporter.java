@@ -60,6 +60,15 @@ public class PushTaskReporter {
 		return threadCount.get();
 	}
 
+	public int decrementSubTaskCount(int count) {
+		final int value = this.threadCount.addAndGet(count * -1);
+
+		if (value == 0) {
+			this.complete();
+		}
+		return value;
+	}
+
 	public int decrementSubTaskCount() {
 		final int value = this.threadCount.decrementAndGet();
 		if (value == 0) {
