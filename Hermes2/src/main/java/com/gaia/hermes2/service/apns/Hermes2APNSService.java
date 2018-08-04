@@ -70,10 +70,10 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 
 		boolean sandbox = pushConfig.getBoolean(F.SANDBOX, false);
 		if (sandbox) {
-			hostname = apnsConfig.getString(APNS_HOST_SANDBOX, "api.development.push.apple.com");
+			hostname = apnsConfig.getString(APNS_HOST_SANDBOX, ApnsClientBuilder.DEVELOPMENT_APNS_HOST);
 			port = apnsConfig.getInteger(APNS_PORT_SANDBOX, -1);
 		} else {
-			hostname = apnsConfig.getString(APNS_HOST, "api.push.apple.com");
+			hostname = apnsConfig.getString(APNS_HOST, ApnsClientBuilder.PRODUCTION_APNS_HOST);
 			port = apnsConfig.getInteger(APNS_PORT, -1);
 		}
 
