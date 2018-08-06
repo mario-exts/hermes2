@@ -19,7 +19,7 @@ public class HermesRegisterHandler extends BaseMessageHandler {
 	private static final String APNS_AUTHENTICATOR_ID = "apnsAuthenticatorId";
 	private static final String GCM_AUTHENTICATOR_ID = "gcmAuthenticatorId";
 	private static final String WP_AUTHENTICATOR_ID = "wpAuthenticatorId";
-	private static final String IS_SANDBOX = "isSandbox";
+	// private static final String IS_SANDBOX = "isSandbox";
 
 	private String hermes2HandlerName;
 	private String applicationId;
@@ -27,7 +27,7 @@ public class HermesRegisterHandler extends BaseMessageHandler {
 	private String gcmAuthenticatorId;
 	private String wpAuthenticatorId;
 
-	private boolean isSandbox = false;
+	// private boolean isSandbox = false;
 
 	@Override
 	public void init(PuObjectRO initParams) {
@@ -38,7 +38,7 @@ public class HermesRegisterHandler extends BaseMessageHandler {
 		this.gcmAuthenticatorId = initParams.getString(GCM_AUTHENTICATOR_ID, null);
 		this.wpAuthenticatorId = initParams.getString(WP_AUTHENTICATOR_ID, null);
 
-		this.isSandbox = initParams.getBoolean(IS_SANDBOX, false);
+		// this.isSandbox = initParams.getBoolean(IS_SANDBOX, false);
 	}
 
 	@Override
@@ -46,7 +46,7 @@ public class HermesRegisterHandler extends BaseMessageHandler {
 		PuElement puEle = message.getData();
 		if (puEle instanceof PuObject) {
 			PuObject puo = (PuObject) puEle;
-			getLogger().debug("Hermes got request: " + puo);
+//			getLogger().debug("Hermes got request: " + puo);
 			if (puo.variableExists(F.COMMAND) && puo.getString(F.COMMAND).equalsIgnoreCase("register")) {
 				if (puo.variableExists(PLATFORM_ID)) {
 					int platformId = puo.getInteger(PLATFORM_ID);
@@ -68,12 +68,14 @@ public class HermesRegisterHandler extends BaseMessageHandler {
 						serviceType = WP;
 						break;
 					}
-					if (serviceType != null && authenticatorId != null) {
-						puo.setString(F.AUTHENTICATOR_ID, authenticatorId);
+					if (serviceType != null) {
 						puo.setString(F.SERVICE_TYPE, serviceType);
 					}
+					if (authenticatorId != null) {
+						puo.setString(F.AUTHENTICATOR_ID, authenticatorId);
+					}
 				}
-				puo.setBoolean(F.SANDBOX, this.isSandbox);
+
 				puo.setString(F.COMMAND, "registerToken");
 				puo.setString(F.APPLICATION_ID, this.applicationId);
 				getLogger().debug("Register token: " + puo);

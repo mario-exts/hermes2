@@ -3,6 +3,7 @@ package com.gaia.hermes2.bean;
 import org.bson.Document;
 
 import com.gaia.hermes2.statics.DBF;
+import com.gaia.hermes2.statics.F;
 import com.nhb.common.db.beans.AbstractMongoBean;
 
 import lombok.Getter;
@@ -18,7 +19,9 @@ public class DeviceTokenBean extends AbstractMongoBean{
 	private String serviceType;
 	private String checksum;
 	private String appId;
+	private String productId;
 	private String authenticatorId;
+	private boolean sandbox;
 	
 	@Override
 	public Document toDocument() {
@@ -28,8 +31,9 @@ public class DeviceTokenBean extends AbstractMongoBean{
 		doc.put(DBF.SERVICE_TYPE, this.serviceType);
 		doc.put(DBF.CHECKSUM, this.checksum);
 		doc.put(DBF.APPLICATION_ID, this.appId);
+		doc.put(DBF.PRODUCT_ID, productId);
 		doc.put(DBF.AUTHENTICATOR_ID, this.authenticatorId);
-		
+		doc.put(DBF.SANDBOX, sandbox);
 		return doc;
 	}
 	
@@ -38,10 +42,14 @@ public class DeviceTokenBean extends AbstractMongoBean{
 		bean.setObjectId(doc.getObjectId(DBF._ID));
 		bean.setId(doc.getString(DBF.ID));
 		bean.setAppId(doc.getString(DBF.APPLICATION_ID));
+		if(doc.containsKey(F.PRODUCT_ID)){
+			bean.setProductId(doc.getString(F.PRODUCT_ID));
+		}
 		bean.setAuthenticatorId(doc.getString(DBF.AUTHENTICATOR_ID));
 		bean.setChecksum(doc.getString(DBF.CHECKSUM));
 		bean.setServiceType(doc.getString(DBF.SERVICE_TYPE));
 		bean.setToken(doc.getString(DBF.TOKEN));
+		bean.setSandbox(doc.getBoolean(DBF.SANDBOX, false));
 		return bean;
 	}
 	

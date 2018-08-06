@@ -13,10 +13,10 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ServiceAuthenticatorBean extends AbstractMongoBean{
+public class ServiceAuthenticatorBean extends AbstractMongoBean {
 
 	private static final long serialVersionUID = 181129615256052415L;
-	
+
 	private String id;
 	private String appId;
 	private String serviceType;
@@ -25,10 +25,12 @@ public class ServiceAuthenticatorBean extends AbstractMongoBean{
 	private String checksum;
 	private boolean sandbox;
 	private String topic;
-	
+	private String productId;
+	private String bundleId;
+
 	@Override
 	public Document toDocument() {
-		Document doc=new Document();
+		Document doc = new Document();
 		doc.put(DBF.ID, this.id);
 		doc.put(DBF.APPLICATION_ID, this.appId);
 		doc.put(DBF.SERVICE_TYPE, this.serviceType);
@@ -36,44 +38,56 @@ public class ServiceAuthenticatorBean extends AbstractMongoBean{
 		doc.put(DBF.PASSWORD, this.password);
 		doc.put(DBF.CHECKSUM, this.checksum);
 		doc.put(DBF.SANDBOX, this.sandbox);
-		if(topic!=null){
+		if (topic != null) {
 			doc.put(DBF.TOPIC, this.topic);
 		}
+		if (bundleId != null) {
+			doc.put(DBF.BUNDLE_ID, this.bundleId);
+		}
+		doc.put(DBF.PRODUCT_ID, productId);
 		return doc;
 	}
-	
-	public static ServiceAuthenticatorBean fromDocument(Document doc){
-		ServiceAuthenticatorBean bean=new ServiceAuthenticatorBean();
-		
+
+	public static ServiceAuthenticatorBean fromDocument(Document doc) {
+		ServiceAuthenticatorBean bean = new ServiceAuthenticatorBean();
+
 		bean.setObjectId(doc.getObjectId(DBF._ID));
 		bean.setId(doc.getString(DBF.ID));
 		bean.setAppId(doc.getString(DBF.APPLICATION_ID));
 		bean.setServiceType(doc.getString(DBF.SERVICE_TYPE));
-		bean.setAuthenticator(doc.get(DBF.AUTHENTICATOR,Binary.class).getData());
+		bean.setAuthenticator(doc.get(DBF.AUTHENTICATOR, Binary.class).getData());
 		bean.setPassword(doc.getString(DBF.PASSWORD));
 		bean.setChecksum(doc.getString(DBF.CHECKSUM));
 		bean.setSandbox(doc.getBoolean(DBF.SANDBOX, false));
-		if(doc.containsKey(DBF.TOPIC)){
+		if (doc.containsKey(DBF.TOPIC)) {
 			bean.setTopic(doc.getString(DBF.TOPIC));
 		}
-		
+		if (doc.containsKey(DBF.BUNDLE_ID)) {
+			bean.setTopic(doc.getString(DBF.BUNDLE_ID));
+		}
+		if(doc.containsKey(DBF.PRODUCT_ID)){
+			bean.setProductId(doc.getString(DBF.PRODUCT_ID));
+		}
 		return bean;
 	}
-	
-	public PuObject toPuObject(){
-		PuObject puo=new PuObject();
+	@Override
+	public PuObject toPuObject() {
+		PuObject puo = new PuObject();
 		puo.set(F.ID, this.id);
 		puo.set(F.APPLICATION_ID, this.appId);
 		puo.set(F.SERVICE_TYPE, this.serviceType);
 		puo.setRaw(F.AUTHENTICATOR, this.authenticator);
 		puo.set(F.PASSWORD, this.password);
-		puo.set(F.CHECKSUM, this.checksum);
+//		puo.set(F.CHECKSUM, this.checksum);
 		puo.set(F.SANDBOX, this.sandbox);
-		if(topic!=null){
+		if (topic != null) {
 			puo.set(F.TOPIC, this.topic);
 		}
-		
+		if (bundleId != null) {
+			puo.set(F.BUNDLE_ID, this.bundleId);
+		}
+		puo.set(F.PRODUCT_ID, this.productId);
 		return puo;
 	}
-	
+
 }

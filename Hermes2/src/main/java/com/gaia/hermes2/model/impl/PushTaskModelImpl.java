@@ -44,7 +44,7 @@ public class PushTaskModelImpl extends HermesAbstractModel implements com.gaia.h
 	public PushTaskBean findByTaskId(String id) {
 		Document find = new Document(F.ID, id);
 		FindIterable<Document> found = getCollection().find(find);
-		if (found != null && found.first() != null) {
+		if (found.first() != null) {
 			return PushTaskBean.fromDocument(found.first());
 		}
 		return null;
@@ -56,8 +56,6 @@ public class PushTaskModelImpl extends HermesAbstractModel implements com.gaia.h
 		Document update = new Document("$inc",
 				new Document(DBF.GCM_SUCCESS_COUNT, gcmSuccess).append(DBF.GCM_FAILURE_COUNT, gcmFailure));
 		update.append("$set", new Document(DBF.LAST_MODIFIED, currentTime()));
-//		update.append("$currentDate", new Document(DBF.LAST_MODIFIED,
-//				new Document("$type", "timestamp")));
 		UpdateResult result = getCollection().updateOne(match, update);
 		return result.getModifiedCount() > 0 ? true : false;
 	}
@@ -68,8 +66,6 @@ public class PushTaskModelImpl extends HermesAbstractModel implements com.gaia.h
 		Document update = new Document("$inc",
 				new Document(DBF.APNS_SUCCESS_COUNT, apnsSuccess).append(DBF.APNS_FAILURE_COUNT, apnsFailure));
 		update.append("$set", new Document(DBF.LAST_MODIFIED, currentTime()));
-//		update.append("$currentDate", new Document(DBF.LAST_MODIFIED,
-//				new Document("$type", "timestamp")));
 		UpdateResult result = getCollection().updateOne(match, update);
 		return result.getModifiedCount() > 0 ? true : false;
 	}
@@ -79,9 +75,6 @@ public class PushTaskModelImpl extends HermesAbstractModel implements com.gaia.h
 		Document match = new Document(DBF.ID, taskId);
 		Document update = new Document("$set",new Document(DBF.IS_DONE,isDone)
 				.append(DBF.LAST_MODIFIED, currentTime()));
-//		update.append("$currentDate", new Document(DBF.LAST_MODIFIED,
-//				new Document("$type", "timestamp")));
-		
 		UpdateResult result = getCollection().updateOne(match, update);
 		return result.getModifiedCount() > 0 ? true : false;
 	}

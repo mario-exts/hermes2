@@ -72,14 +72,14 @@ public class GCMAsyncSender extends BaseLoggable implements Closeable {
 		RequestBuilder builder = RequestBuilder.post(GCM_SEND_ENDPOINT).addHeader("Content-Type", DEFAULT_CONTENT_TYPE)
 				.addHeader("Authorization", "key=" + this.secretKey).setCharset(Charset.forName("UTF-8"));
 
-		getLogger().debug("Sending message to " + regIds.size() + " device(s)");
+//		getLogger().debug("Sending message to " + regIds.size() + " device(s)");
 		final HttpAsyncFuture future = this.httpClient.executeAsync(builder, params);
 
 		future.setCallback(new Callback<HttpResponse>() {
 
 			@Override
 			public void apply(HttpResponse response) {
-				getLogger().debug("Sending complete with response: " + response);
+//				getLogger().debug("Sending complete with response: " + response);
 				if (response == null) {
 					if (failureCallback != null) {
 						failureCallback.apply(future.getFailedCause());

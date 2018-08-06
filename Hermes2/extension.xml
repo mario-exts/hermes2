@@ -4,12 +4,12 @@
 		<mongodb>
 			<name>hermes2_mongodb</name>
 			<endpoint>
-				<entry>127.0.0.1:27017</entry>
+				<entry>${MONGO_DB}</entry>
 			</endpoint>
 			<credentials>
 				<entry>
-					<username>local_admin</username>
-					<password>123456</password>
+					<username>${MONGO_USER}</username>
+					<password>${MONGO_PASSWORD}</password>
 					<authdb>admin</authdb>
 				</entry>
 			</credentials>
@@ -29,7 +29,7 @@
 			<name>hermes2_http_push_gateway</name>
 			<server>hermes2_http_server_8801</server>
 			<path>/hermes2/push</path>
-			<usemultipath>true</usemultipath>
+			<usemultipart>true</usemultipart>
 			<deserializer>com.gaia.hermes2.http.deserializer.Hermes2HttpGatewayDeserialier</deserializer>
 			<async>true</async>
 			<workerpool>
@@ -39,10 +39,23 @@
 			</workerpool>
 		</http>
 		<http>
+			<name>hermes2_http_admin_gateway</name>
+			<server>hermes2_http_server_8801</server>
+			<path>/hermes2/admin</path>
+			<usemultipart>true</usemultipart>
+			<deserializer>com.gaia.hermes2.http.deserializer.Hermes2HttpGatewayDeserialier</deserializer>
+			<async>true</async>
+			<workerpool>
+				<poolsize>8</poolsize>
+				<ringbuffersize>1024</ringbuffersize>
+				<threadnamepattern>Hermes2 Http Admin Worker #%d</threadnamepattern>
+			</workerpool>
+		</http>
+		<http>
 			<name>hermes2_http_register_gateway</name>
 			<server>hermes2_http_server_8801</server>
-			<usemultipath>true</usemultipath>
-			<deserializer>com.gaia.hermes2.http.deserializer.Hermes2HttpGatewayDeserialier</deserializer>
+			<usemultipart>true</usemultipart>
+			<deserializer>com.gaia.hermes2.http.deserializer.HttpGatewayDeserialier</deserializer>
 			<path>/hermes2/register</path>
 			<async>true</async>
 			<workerpool>
@@ -54,7 +67,7 @@
 		<http>
 			<name>hermes_http_register_gateway</name>
 			<server>hermes2_http_server_8801</server>
-			<usemultipath>true</usemultipath>
+			<usemultipart>true</usemultipart>
 			<deserializer>com.gaia.hermes2.http.deserializer.Hermes2HttpGatewayDeserialier</deserializer>
 			<path>/hermes</path>
 			<async>true</async>
@@ -95,6 +108,7 @@
 					<variable name="addAuthenticator" type="String">com.gaia.hermes2.processor.register.AddAuthenticatorProcessor</variable>
 					<variable name="registerToken" type="String">com.gaia.hermes2.processor.register.RegisterTokenProcessor</variable>
 					<variable name="batchRegisterToken" type="String">com.gaia.hermes2.processor.register.BatchRegisterTokenProcessor</variable>
+					<variable name="addSmsService" type="String">com.gaia.hermes2.processor.register.AddSmsServiceProcessor</variable>
 				</variable>
 			</variables>
 		</handler>
@@ -111,7 +125,29 @@
 				<variable name="serviceConfigFile" type="String">conf/services.properties</variable>
 				<variable name="commands" type="puobject">
 					<variable name="push" type="String">com.gaia.hermes2.processor.push.PushNotificationProcessor</variable>
+					<variable name="pushToIds" type="String">com.gaia.hermes2.processor.push.PushToIdProcessor</variable>
 					<variable name="checkTask" type="String">com.gaia.hermes2.processor.push.CheckPushStateProcessor</variable>
+					<variable name="sendSms" type="String">com.gaia.hermes2.processor.push.SendSmsProcessor</variable>
+					<variable name="resetService" type="String">com.gaia.hermes2.processor.push.ResetServiceProcessor</variable>
+				</variable>
+			</variables>
+		</handler>
+
+		<handler>
+			<name>hermes2_admin_handler</name>
+			<handle>com.gaia.hermes2.Hermes2AdminHandler</handle>
+			<bind>
+				<gateway>hermes2_http_admin_gateway</gateway>
+			</bind>
+			<variables>
+				<variable name="databaseName" type="String">hermes2</variable>
+				<variable name="mongodb" type="String">hermes2_mongodb</variable>
+				<variable name="modelMappingFile" type="String">conf/model_mappings.properties</variable>
+				<variable name="serviceConfigFile" type="String">conf/services.properties</variable>
+				<variable name="commands" type="puobject">
+					<variable name="getAuthenticators" type="String">com.gaia.hermes2.processor.admin.GetAuthenticatorProcessor</variable>
+					<variable name="removeAuthenticator" type="String">com.gaia.hermes2.processor.admin.RemoveAuthenticatorProcessor</variable>
+					<variable name="updateAuthenticator" type="String">com.gaia.hermes2.processor.admin.UpdateAuthenticatorProcessor</variable>
 				</variable>
 			</variables>
 		</handler>

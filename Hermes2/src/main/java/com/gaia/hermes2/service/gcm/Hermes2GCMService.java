@@ -23,6 +23,7 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 	private final String BATCH_CHUNK_SIZE = "gcm.batchChunkSize";
 
 	public static int DEFAULT_RETRIES = 1;
+	public static int MAX_THREAD_COUNT = 16;
 
 	private ExecutorService executor;
 	private PuObjectRO clientConfig;
@@ -34,8 +35,9 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 		this.clientConfig = properties.getPuObject(F.CLIENT_CONFIG, new PuObject());
 		this.applicationConfig = properties.getPuObject(F.APPLICATION_CONFIG, new PuObject());
 		this.sender = new GCMAsyncSender(applicationConfig.getString(F.AUTHENTICATOR));
-		this.executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder()
-				.setNameFormat("Hermes2GCM " + applicationConfig.getString(F.ID) + " #%d").build());
+		 this.executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("Hermes2GCM " + applicationConfig.getString(F.ID) + "#%d").build());
+//		this.executor = Executors.newFixedThreadPool(MAX_THREAD_COUNT, new ThreadFactoryBuilder()
+//				.setNameFormat("Hermes2GCM " + applicationConfig.getString(F.ID) + " Executor #%d").build());
 	}
 
 	@Override
@@ -72,7 +74,7 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 
 			@Override
 			public void apply(Throwable cause) {
-				getLogger().error("An error occur when sending message: ", cause);
+				getLogger().error("An error occur when sending GCM message: ", cause);
 				executor.submit(new Runnable() {
 
 					@Override
@@ -90,44 +92,50 @@ public class Hermes2GCMService extends Hermes2AbstractPushNotificationService {
 
 	@Override
 	public void push(Hermes2Notification notification, PushTaskReporter taskReporter) {
-		List<List<String>> batchs = new ArrayList<>();
+		try {
+			List<List<String>> batchs = new ArrayList<>();
 
-		int partitionCount = notification.getRecipients().size() / this.clientConfig.getInteger(BATCH_CHUNK_SIZE);
-		partitionCount = partitionCount == 0 ? 1 : partitionCount;
+			int partitionCount = notification.getRecipients().size() / this.clientConfig.getInteger(BATCH_CHUNK_SIZE);
+			partitionCount = partitionCount == 0 ? 1 : partitionCount;
 
-		for (int i = 0; i < partitionCount; i++) {
-			batchs.add(new ArrayList<String>());
-		}
-
-		int index = 0;
-		for (String recipient : notification.getRecipients()) {
-			batchs.get(index++ % partitionCount).add(recipient);
-		}
-
-		Builder messageBuilder = new Message.Builder().addData(F.MESSAGE, notification.getMessage());
-
-		String title = notification.getTitle();
-		if (title != null) {
-			messageBuilder.addData(F.TITLE, title);
-		}
-
-		if (notification.getBadge() > 0) {
-			messageBuilder.addData(F.BADGE, String.valueOf(notification.getBadge()));
-		}
-
-		String messgeId = notification.getMessageId();
-		if (messgeId != null) {
-			messageBuilder.addData(F.MESSAGE_ID, messgeId);
-		}
-
-		if (batchs.size() == 0) {
-			taskReporter.decrementSubTaskCount();
-		} else {
-			taskReporter.addAndGetSubTaskCount(batchs.size() - 1);
-			Message message = messageBuilder.build();
-			for (List<String> recipients : batchs) {
-				Hermes2GCMService.this.asyncSend(message, recipients, taskReporter);
+			for (int i = 0; i < partitionCount; i++) {
+				batchs.add(new ArrayList<String>());
 			}
+
+			int index = 0;
+			for (String recipient : notification.getRecipients()) {
+				batchs.get(index++ % partitionCount).add(recipient);
+			}
+
+			Builder messageBuilder = new Message.Builder().addData(F.MESSAGE, notification.getMessage());
+
+			String title = notification.getTitle();
+			if (title != null) {
+				messageBuilder.addData(F.TITLE, title);
+			}
+
+			if (notification.getBadge() > 0) {
+				messageBuilder.addData(F.BADGE, String.valueOf(notification.getBadge()));
+			}
+
+			String messgeId = notification.getMessageId();
+			if (messgeId != null) {
+				messageBuilder.addData(F.MESSAGE_ID, messgeId);
+			}
+
+			if (batchs.size() == 0) {
+				taskReporter.decrementSubTaskCount();
+			} else {
+				taskReporter.addAndGetSubTaskCount(batchs.size() - 1);
+				Message message = messageBuilder.build();
+				for (List<String> recipients : batchs) {
+					Hermes2GCMService.this.asyncSend(message, recipients, taskReporter);
+				}
+			}
+
+		} catch (Exception e) {
+			getLogger().error("Error when push GCM", e);
+			taskReporter.decrementSubTaskCount();
 		}
 	}
 

@@ -147,17 +147,11 @@ public class Hermes2RegisterHandler extends BaseMessageHandler {
 						new Document().append(F.APPLICATION_ID, 1).append(F.TOKEN, 1),
 						new Document().append(F.SERVICE_TYPE, 1))));
 
-		createDatabaseIndexes(DBF.DATABASE_DEVICE_TOKEN_SANDBOX,
-				new ArrayList<>(Arrays.asList(new Document().append(F.ID, 1), new Document().append(F.CHECKSUM, 1),
-						new Document().append(F.TOKEN, 1), new Document().append(F.APPLICATION_ID, 1),
-						new Document().append(F.APPLICATION_ID, 1).append(F.SERVICE_TYPE, 1),
-						new Document().append(F.APPLICATION_ID, 1).append(F.SERVICE_TYPE, 1).append(F.TOKEN, 1),
-						new Document().append(F.APPLICATION_ID, 1).append(F.TOKEN, 1),
-						new Document().append(F.SERVICE_TYPE, 1))));
 	}
-	
+
 	public void createDatabaseIndexes(String connectionName, List<Document> tobeIndexed) {
-		MongoCollection<Document> collection=mongoClient.getDatabase(DBF.MONGO_DATABASE_NAME).getCollection(connectionName);
+		MongoCollection<Document> collection = mongoClient.getDatabase(DBF.MONGO_DATABASE_NAME)
+				.getCollection(connectionName);
 		for (Document index : collection.listIndexes()) {
 			index = (Document) index.get(F.KEY);
 			List<Integer> markToRemove = new ArrayList<>();
