@@ -86,7 +86,9 @@ public class Hermes2APNSService extends Hermes2AbstractPushNotificationService {
 		String entrustRootCAFilePath = apnsConfig.getString(APNS_ENTRUST_ROOT_CA, null);
 		if (entrustRootCAFilePath != null) {
 			String basePath = FileSystemUtils.getBasePathForClass(this.getClass());
-			builder.setTrustedServerCertificateChain(new File(basePath + entrustRootCAFilePath));
+			String pathname = basePath + entrustRootCAFilePath;
+			getLogger().info("cer path is: {}", pathname);
+			builder.setTrustedServerCertificateChain(new File(pathname));
 		}
 
 		return builder.build();
